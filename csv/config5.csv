@@ -1,0 +1,9 @@
+XLEN     COMPILER    EXTENSIONS  ABI    N_PROC    FNAME
+32      gcc         gc          ilp32   1         simple_add
+32      gcc         gc          ilp32   1         printf
+32      gcc         gc          ilp32   2         func_call
+32      gcc         iaf         ilp32   3         simple_add
+#32     gcc         ia          ilp32
+
+# Having the test case name at the first column/key is great as this opens the possibility
+#   of comparing different configs under a single test case folder
