@@ -122,13 +122,14 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 # Strip down the directory name to grab the needed variables (can't get them directly from CSV rows)
 # Note that these are lists of items, appending should be done using addsuffix to add to all items
 NPROCDIRS := $(dir ${TRACES})
-TESTDIRS := $(dir ${NPROCDIRS})
-COMMON_ARCH := $(addsuffix ../common,${TESTDIRS})
+TESTDIRS := $(addsuffix ../,${NPROCDIRS})
+# COMMON_ARCH := $(addsuffix ../common,${TESTDIRS})
 # COMMON_ARCH := ${TESTDIRS}/../common # ${BUILD_DIR}/%/../common/
-HISTOGRAMS := $(subst .trc,.hist,${TRACES})
-OBJECTS := $(addsuffix testcase.o,${TRACES}) # ${BUILD_DIR}/%/testcase.o
+HISTOGRAMS := $(addsuffix histogram.hst,${NPROCDIRS})
+OBJECTS := $(addsuffix testcase.o,${TESTDIRS}) # ${BUILD_DIR}/%/testcase.o
 EXECUTABLES := $(addsuffix testcase.elf,${TESTDIRS})
-DISASSEMBLIES := $(subst .elf,.dasm,${EXECUTABLES})
+DISASSEMBLIES := $(addsuffix disassembly.dasm,${TESTDIRS})
+# DISASSEMBLIES := $(subst .elf,.dasm,${EXECUTABLES})
 
 # Variables
 
@@ -261,19 +262,20 @@ ${BUILD_DIR}/%/instr-trace.trc: ${BUILD_DIR}/%/../testcase.elf
 	$(SPIKE) -p$(N_PROC) -l --isa=$(ISA) $< 2> $@
 
 # Choosing to separate the disassembly FNAME production from the simulation as someone may want to see the disassembly without simulating
-# DISASSEMBLIES := $(addprefix ${BUILD_DIR}/,$(addsuffix /disassembly.dump, $(CSV_ROWS))) 
+# DISASSEMBLIES := $(addprefix ${BUILD_DIR}/,$(addsuffix /disassembly.dasm, $(CSV_ROWS))) 
 .PHONY: disassembly
 disassembly: $(DISASSEMBLIES)
 
-${BUILD_DIR}/%/disassembly.dump: ${BUILD_DIR}/%/testcase.elf
-	@echo --------- Disassembly printed to : ${BUILD_DIR}/$*/disassembly.dump ---------
+${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/testcase.elf
+	@echo --------- Disassembly printed to : ${BUILD_DIR}/$*/disassembly.dasm ---------
+	@echo $(DISASSEMBLIES)
 	$(OBJDUMP) -S -D $< > $@
 
 # HISTOGRAMS := $(addprefix ${BUILD_DIR}/,$(addsuffix /histogram.txt, $(CSV_ROWS))) 
 .PHONY: histogram
 histogram: $(HISTOGRAMS)
 
-${BUILD_DIR}/%/histogram.txt: ${BUILD_DIR}/%/testcase.elf
+${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/testcase.elf
 	@echo --------- Histogram printed to : $@ ---------
 	$(SPIKE) -g --isa=$(ISA) $< 2> $@
 
@@ -281,13 +283,13 @@ EXTRACTED_MAIN_FILES := $(addprefix ${BUILD_DIR}/,$(addsuffix /main-instruction-
 .PHONY: extract_main
 extract_main: $(EXTRACTED_MAIN_FILES)
 
-${BUILD_DIR}/%/main-instruction-trace.log : ${BUILD_DIR}/%/main-disassembly.dump ${BUILD_DIR}/%/instruction-trace.log
+${BUILD_DIR}/%/main-instruction-trace.log : ${BUILD_DIR}/%/main-disassembly.dasm ${BUILD_DIR}/%/instruction-trace.log
 	@echo --------- Extracting the main instruction trace to : $@ ---------
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
 	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/instruction-trace.log > $@
 
-${BUILD_DIR}/%/main-disassembly.dump: ${BUILD_DIR}/%/disassembly.dump
+${BUILD_DIR}/%/main-disassembly.dasm: ${BUILD_DIR}/%/disassembly.dasm
 	@echo --------- Extracting the main disassembly to : $@ ---------
 	sed -n '/<main>:/,/ret/p' $< > $@
 
@@ -330,5 +332,5 @@ clean:
 
 # clean_sim:
 # 	rm ${BUILD_DIR}/*/*.txt
-# 	rm ${BUILD_DIR}/*/*.dump
+# 	rm ${BUILD_DIR}/*/*.dasm
 # 	rm ${BUILD_DIR}/*/*.log
