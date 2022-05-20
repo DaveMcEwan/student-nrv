@@ -119,6 +119,7 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 	rv$(call R_XLEN)$(call R_ISA)-$(call R_ABI)-$(call R_COMPILER)/$\
 	$(call R_FNAME)/nproc-$(call R_NPROC)/instr-trace.trc)
 
+MAIN_TRACES := $(subst instr-trace,main-instr-trace,${TRACES})
 # Strip down the directory name to grab the needed variables (can't get them directly from CSV rows)
 # Note that these are lists of items, appending should be done using addsuffix to add to all items
 NPROCDIRS := $(dir ${TRACES})
@@ -129,6 +130,7 @@ HISTOGRAMS := $(addsuffix histogram.hst,${NPROCDIRS})
 OBJECTS := $(addsuffix testcase.o,${TESTDIRS}) # ${BUILD_DIR}/%/testcase.o
 EXECUTABLES := $(addsuffix testcase.elf,${TESTDIRS})
 DISASSEMBLIES := $(addsuffix disassembly.dasm,${TESTDIRS})
+MAIN_DISASSEMBLIES := $(subst disassembly, main-disassembly,${DISASSEMBLIES})
 # DISASSEMBLIES := $(subst .elf,.dasm,${EXECUTABLES})
 
 # Variables
@@ -159,7 +161,7 @@ DISASSEMBLIES := $(addsuffix disassembly.dasm,${TESTDIRS})
 
 test: TRACES
 	@echo TRACES
-	@echo ${TRACES}
+	@echo ${MAIN_TRACES}
 	@echo
 	@echo TESTDIRS
 	@echo ${TESTDIRS}
@@ -279,15 +281,15 @@ ${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/testcase.elf
 	@echo --------- Histogram printed to : $@ ---------
 	$(SPIKE) -g --isa=$(ISA) $< 2> $@
 
-EXTRACTED_MAIN_FILES := $(addprefix ${BUILD_DIR}/,$(addsuffix /main-instruction-trace.log, $(CSV_ROWS))) 
+# MAIN_TRACES := $(addprefix ${BUILD_DIR}/,$(addsuffix /main-instr-trace.trc, $(CSV_ROWS))) 
 .PHONY: extract_main
-extract_main: $(EXTRACTED_MAIN_FILES)
+extract_main: $(MAIN_TRACES)
 
-${BUILD_DIR}/%/main-instruction-trace.log : ${BUILD_DIR}/%/main-disassembly.dasm ${BUILD_DIR}/%/instruction-trace.log
+${BUILD_DIR}/%/main-instr-trace.trc: ${BUILD_DIR}/%/../main-disassembly.dasm ${BUILD_DIR}/%/instr-trace.trc
 	@echo --------- Extracting the main instruction trace to : $@ ---------
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
-	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/instruction-trace.log > $@
+	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/instr-trace.trc > $@
 
 ${BUILD_DIR}/%/main-disassembly.dasm: ${BUILD_DIR}/%/disassembly.dasm
 	@echo --------- Extracting the main disassembly to : $@ ---------
