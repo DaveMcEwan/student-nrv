@@ -14,7 +14,7 @@ default: extract_main
 SRC_DIR = ./src
 SRC_OBJS_DIR = ./src/objs
 CURRENT_DIR = .
-BUILD_DIR = ./build
+BUILD_DIR = $(abspath ./build)
 
 INCLUDES = -I./include
 
@@ -51,6 +51,7 @@ empty:=
 dash := -
 space:= $(empty) $(empty)
 
+#	Variables based on the directory names
 #	Folder name :	rv32gc-ilp32-gcc/simple_add
 # This is input through the pattern rule and so we must break this down using $*
 # https://www.gnu.org/software/make/manual/html_node/Text-Functions.html
@@ -76,6 +77,7 @@ XLEN 	 ?= $(findstring 64, ${ISA})
 CC = riscv$(XLEN)-unknown-elf-$(COMPILER)
 # ISA = rv$(XLEN)$(ISA)
 
+#	Variables based on the CSV 
 R_XLEN	= $(call CSV_COL,1,${row})
 R_COMPILER	= $(call CSV_COL,2,${row})
 R_ISA	= $(call CSV_COL,3,${row})
@@ -123,15 +125,22 @@ MAIN_TRACES := $(subst instr-trace,main-instr-trace,${TRACES})
 # Strip down the directory name to grab the needed variables (can't get them directly from CSV rows)
 # Note that these are lists of items, appending should be done using addsuffix to add to all items
 NPROCDIRS := $(dir ${TRACES})
-TESTDIRS := $(addsuffix ../,${NPROCDIRS})
+INTERMEDIATE_DIRS := $(addsuffix ../,${NPROCDIRS})
+TESTDIRS := $(abspath ${INTERMEDIATE_DIRS})
+# FILE_NAME := $(notdir ${TESTDIRS})
 # COMMON_ARCH := $(addsuffix ../common,${TESTDIRS})
 # COMMON_ARCH := ${TESTDIRS}/../common # ${BUILD_DIR}/%/../common/
-HISTOGRAMS := $(addsuffix histogram.hst,${NPROCDIRS})
-OBJECTS := $(addsuffix testcase.o,${TESTDIRS}) # ${BUILD_DIR}/%/testcase.o
-EXECUTABLES := $(addsuffix testcase.elf,${TESTDIRS})
-DISASSEMBLIES := $(addsuffix disassembly.dasm,${TESTDIRS})
+HISTOGRAMS := $(addsuffix /histogram.hst,${NPROCDIRS})
+OBJECTS := $(addsuffix /testcase.o,${TESTDIRS}) # ${BUILD_DIR}/%/testcase.o
+
+# FILE_NAME := $(filter %$(${TESTCASENAME}), $(OBJECTS))
+
+EXECUTABLES := $(addsuffix /testcase.elf,${TESTDIRS})
+DISASSEMBLIES := $(addsuffix /disassembly.dasm,${TESTDIRS})
 MAIN_DISASSEMBLIES := $(subst disassembly, main-disassembly,${DISASSEMBLIES})
 # DISASSEMBLIES := $(subst .elf,.dasm,${EXECUTABLES})
+
+# TODO  : Form file name from TRACES
 
 # Variables
 
@@ -140,8 +149,8 @@ MAIN_DISASSEMBLIES := $(subst disassembly, main-disassembly,${DISASSEMBLIES})
 #####	list of variables. Accessing the specific one in a target requires 
 #####	using the pattern rule.
 
-# ARCHDIRS := ${TESTDIRS:./build/%/=%}
-# FNAME := ${notdir ${ARCHDIRS}}
+ARCHDIRS := ${TESTDIRS:./build/%/=%}
+TESTCASENAME := ${notdir ${TESTDIRS}}
 # STRIPPED_ARCHDIRS := $(dir ${ARCHDIRS})
 # STRIPPED_ARCHDIRS := $(subst /, $(space), ${STRIPPED_ARCHDIRS}) 
 
@@ -181,8 +190,8 @@ test: TRACES
 	@echo STRIPPED_ARCHDIRS
 	@echo ${STRIPPED_ARCHDIRS}
 	@echo
-	@echo FNAME
-	@echo ${FNAME}
+	@echo TESTCASENAME
+	@echo ${TESTCASENAME}
 	@echo
 	@echo ISA
 	@echo ${ISA}
@@ -193,8 +202,8 @@ test: TRACES
 	@echo CC
 	@echo ${CC}
 	@echo
-	@echo XLEN
-	@echo ${XLEN}
+	@echo FILE_NAME
+	@echo $(FILE_NAME)
 	@echo
 
 #	Testing
@@ -220,18 +229,28 @@ $(BUILD_DIR)/%/testcase.elf: ${BUILD_DIR}/%/testcase.o $(BUILD_DIR)/%/../common/
 	$(CC) $^ ${SRC_DIR}/entry.S $(CFLAGS) ${INCLUDES} $(LDFLAGS) -o $@
 
 # This is the first thing being done (bottom of the dependency tree) so we mkdir the directory here
-$(BUILD_DIR)/%/testcase.o: ${SRC_DIR}/main.c # see if we can get the Make variable to be present in the dependency list
+# ./test_cases/$(notdir $(abspath $(dir $@))).c
+# DIRECTORY_NAME_SPLIT = $(subst /,$(space), $(DIRECTORY_NAME))
+# $(subst /, $(space), $@)
+#  $(filter $(TESTCASENAME),$(subst /,$(space), $@))
+# $(word 3, $(subst /, , $(EXECUTABLES)))
+# ${TESTDIRS}/$(word $2, $(subst /, ,%)).c # /$(word 2, $(subst /, , %))
+
+.SECONDEXPANSION:
+$(BUILD_DIR)/%/testcase.o: $$(addsuffix .c,$$(addprefix ./test_cases/,$$(notdir $$*)))
 	@echo --------- Compiling into : testcase.o ---------
+	mkdir -p $(dir $@)
 	@echo $(*)
+	@echo $(notdir $*)
 	@echo ISA = $(ISA)
 	@echo ABI = $(ABI)
 	@echo COMPILER = $(COMPILER)
 	@echo FNAME = $(FNAME)
 	@echo XLEN = $(XLEN)
-# mkdir -p $(addprefix ${BUILD_DIR}/,$(addsuffix /, $*))
-	mkdir -p $(dir $@)
-# mkdir -p ${TRACES}
-	$(CC) $(CFLAGS) ${INCLUDES} -c ${TEST_CASES}/$(FNAME).c -o $@
+	@echo FILE_NAME = ${TEST_CASES}/$(word 2, $(subst /,$(space), $*))
+	@echo Dependencies : $^
+	$(CC) $(CFLAGS) ${INCLUDES} -c $^ -o $@
+
 # Producing the assembly FNAME for debugging
 # $(CC) $(CFLAGS) ${INCLUDES} -S ${TEST_CASES}/$(FNAME).c -o ${BUILD_DIR}/$*/testcase.S
 # TODO : Move assembly file creation to a different target
@@ -277,9 +296,9 @@ ${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/testcase.elf
 .PHONY: histogram
 histogram: $(HISTOGRAMS)
 
-${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/testcase.elf
+${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/../testcase.elf
 	@echo --------- Histogram printed to : $@ ---------
-	$(SPIKE) -g --isa=$(ISA) $< 2> $@
+	$(SPIKE) -p$(N_PROC) -g --isa=$(ISA) $< 2> $@
 
 # MAIN_TRACES := $(addprefix ${BUILD_DIR}/,$(addsuffix /main-instr-trace.trc, $(CSV_ROWS))) 
 .PHONY: extract_main
