@@ -14,7 +14,8 @@ default: extract_main
 SRC_DIR = ./src
 SRC_OBJS_DIR = ./src/objs
 CURRENT_DIR = .
-BUILD_DIR = $(abspath ./build)
+BUILD_DIR = ./build
+# $(abspath ./build)
 
 INCLUDES = -I./include
 
@@ -125,22 +126,16 @@ MAIN_TRACES := $(subst instr-trace,main-instr-trace,${TRACES})
 # Strip down the directory name to grab the needed variables (can't get them directly from CSV rows)
 # Note that these are lists of items, appending should be done using addsuffix to add to all items
 NPROCDIRS := $(dir ${TRACES})
-INTERMEDIATE_DIRS := $(addsuffix ../,${NPROCDIRS})
-TESTDIRS := $(abspath ${INTERMEDIATE_DIRS})
+TESTDIRS := $(addsuffix ../,${NPROCDIRS})
+# TESTDIRS := $(abspath ${INTERMEDIATE_DIRS})
 # FILE_NAME := $(notdir ${TESTDIRS})
 # COMMON_ARCH := $(addsuffix ../common,${TESTDIRS})
 # COMMON_ARCH := ${TESTDIRS}/../common # ${BUILD_DIR}/%/../common/
-HISTOGRAMS := $(addsuffix /histogram.hst,${NPROCDIRS})
-OBJECTS := $(addsuffix /testcase.o,${TESTDIRS}) # ${BUILD_DIR}/%/testcase.o
-
-# FILE_NAME := $(filter %$(${TESTCASENAME}), $(OBJECTS))
-
-EXECUTABLES := $(addsuffix /testcase.elf,${TESTDIRS})
-DISASSEMBLIES := $(addsuffix /disassembly.dasm,${TESTDIRS})
+HISTOGRAMS := $(addsuffix histogram.hst,${TESTDIRS})
+OBJECTS := $(addsuffix testcase.o,${TESTDIRS}) # ${BUILD_DIR}/%/testcase.o
+EXECUTABLES := $(addsuffix testcase.elf,${TESTDIRS})
+DISASSEMBLIES := $(addsuffix disassembly.dasm,${TESTDIRS})
 MAIN_DISASSEMBLIES := $(subst disassembly, main-disassembly,${DISASSEMBLIES})
-# DISASSEMBLIES := $(subst .elf,.dasm,${EXECUTABLES})
-
-# TODO  : Form file name from TRACES
 
 # Variables
 
@@ -170,6 +165,9 @@ TESTCASENAME := ${notdir ${TESTDIRS}}
 
 test: TRACES
 	@echo TRACES
+	@echo ${TRACES}
+	@echo
+	@echo MAIN_TRACES
 	@echo ${MAIN_TRACES}
 	@echo
 	@echo TESTDIRS
@@ -187,23 +185,8 @@ test: TRACES
 	@echo ARCHDIRS
 	@echo ${ARCHDIRS}
 	@echo
-	@echo STRIPPED_ARCHDIRS
-	@echo ${STRIPPED_ARCHDIRS}
-	@echo
-	@echo TESTCASENAME
-	@echo ${TESTCASENAME}
-	@echo
-	@echo ISA
-	@echo ${ISA}
-	@echo
-	@echo ABI
-	@echo ${ABI}
-	@echo
-	@echo CC
-	@echo ${CC}
-	@echo
-	@echo FILE_NAME
-	@echo $(FILE_NAME)
+	@echo NPROCDIRS
+	@echo ${NPROCDIRS}
 	@echo
 
 #	Testing
@@ -219,11 +202,12 @@ TRACES:
 build: $(EXECUTABLES)
 	@echo BUILD COMPLETE
 
+# /pri/nesi/RISCV/nrv/build/rv32gc-ilp32-gcc/simple_add/nproc-1/../testcase.elf
 # The rule to make $(EXECUTABLES)
 # Output ELF
 # ${BUILD_DIR}/%/testcase.elf - Need to have the target written like this (can't use EXECUTABLES)
 # https://www.gnu.org/software/make/manual/html_node/Prerequisite-Types.html
-$(BUILD_DIR)/%/testcase.elf: ${BUILD_DIR}/%/testcase.o $(BUILD_DIR)/%/../common/syscalls.o
+${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o $(BUILD_DIR)/%/../common/syscalls.o
 	@echo --------- Linking into : testcase.elf ---------
 	@echo $*
 	$(CC) $^ ${SRC_DIR}/entry.S $(CFLAGS) ${INCLUDES} $(LDFLAGS) -o $@
@@ -237,7 +221,7 @@ $(BUILD_DIR)/%/testcase.elf: ${BUILD_DIR}/%/testcase.o $(BUILD_DIR)/%/../common/
 # ${TESTDIRS}/$(word $2, $(subst /, ,%)).c # /$(word 2, $(subst /, , %))
 
 .SECONDEXPANSION:
-$(BUILD_DIR)/%/testcase.o: $$(addsuffix .c,$$(addprefix ./test_cases/,$$(notdir $$*)))
+$(BUILD_DIR)/%/testcase.o: $$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*))))
 	@echo --------- Compiling into : testcase.o ---------
 	mkdir -p $(dir $@)
 	@echo $(*)
@@ -259,7 +243,6 @@ $(BUILD_DIR)/%/testcase.o: $$(addsuffix .c,$$(addprefix ./test_cases/,$$(notdir 
 # ${COMMON_ARCH}/syscalls.o
 $(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c
 	@echo --------- Compiling into : syscalls.o ---------
-#	mkdir -p $(addprefix ${BUILD_DIR}/,$(addsuffix /../common, $*))
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) ${INCLUDES} -w -c $< -o $@
 
@@ -273,10 +256,9 @@ $(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c
 sim: $(TRACES)
 	@echo SIMULATED
 
-# ${BUILD_DIR}/%/instruction-trace.log
-
 # $(addsuffix $(dir ${BUILD_DIR}/%), /testcase.elf)
 ${BUILD_DIR}/%/instr-trace.trc: ${BUILD_DIR}/%/../testcase.elf
+	mkdir -p $(dir $@)
 	@echo --------- Simulation log printed to : ${BUILD_DIR}/$*/instruction-trace.log ---------
 	@echo $(dir $(BUILD_DIR)/$*.trc)
 	@echo $(DIRECTORY_NAME_SPLIT)
@@ -288,6 +270,7 @@ ${BUILD_DIR}/%/instr-trace.trc: ${BUILD_DIR}/%/../testcase.elf
 disassembly: $(DISASSEMBLIES)
 
 ${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/testcase.elf
+	mkdir -p $(dir $@)
 	@echo --------- Disassembly printed to : ${BUILD_DIR}/$*/disassembly.dasm ---------
 	@echo $(DISASSEMBLIES)
 	$(OBJDUMP) -S -D $< > $@
@@ -296,9 +279,10 @@ ${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/testcase.elf
 .PHONY: histogram
 histogram: $(HISTOGRAMS)
 
-${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/../testcase.elf
+${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/testcase.elf
+	mkdir -p $(dir $@)
 	@echo --------- Histogram printed to : $@ ---------
-	$(SPIKE) -p$(N_PROC) -g --isa=$(ISA) $< 2> $@
+	$(SPIKE) -g --isa=$(ISA) $< 2> $@
 
 # MAIN_TRACES := $(addprefix ${BUILD_DIR}/,$(addsuffix /main-instr-trace.trc, $(CSV_ROWS))) 
 .PHONY: extract_main
@@ -306,11 +290,12 @@ extract_main: $(MAIN_TRACES)
 
 ${BUILD_DIR}/%/main-instr-trace.trc: ${BUILD_DIR}/%/../main-disassembly.dasm ${BUILD_DIR}/%/instr-trace.trc
 	@echo --------- Extracting the main instruction trace to : $@ ---------
+	mkdir -p $(dir $@)
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
 	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/instr-trace.trc > $@
 
-${BUILD_DIR}/%/main-disassembly.dasm: ${BUILD_DIR}/%/disassembly.dasm
+${BUILD_DIR}/%/../main-disassembly.dasm: ${BUILD_DIR}/%/../disassembly.dasm
 	@echo --------- Extracting the main disassembly to : $@ ---------
 	sed -n '/<main>:/,/ret/p' $< > $@
 
