@@ -1,5 +1,6 @@
 #******************************************************************************
-#    Expanding upon the repo by Noureddine Ait Said : https://github.com/noureddine-as/riscv-baremetal-DefaultConfig
+#    Expanding upon the repo by Noureddine Ait Said : 
+#		https://github.com/noureddine-as/riscv-baremetal-DefaultConfig
 #------------------------------------------------------------------------------
 
 .SECONDARY: # Used to stop make from deleting intermediate files
@@ -51,8 +52,9 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 MAIN_TRACES := $(subst testcase,main,${TRACES})
 
 # Go up one directory - places us in the FNAME directory
-NPROC_DIRS := $(dir ${TRACES})
-FNAME_DIRS := $(addsuffix ../,${NPROC_DIRS})
+NPROC_DIRS 	:= $(dir ${TRACES})
+FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
+COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
 
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
 HISTOGRAMS 		   := $(subst .o,.hst,${OBJECTS})
@@ -130,14 +132,14 @@ TRACES:
 	mkdir -p $(FNAME_DIRS)
 
 # ----------------------------------- BUILD ------------------------------------
-
 .PHONY: build
 build: $(EXECUTABLES)
 
 # Executable target
 # example $* = rv32gc-ilp32-gcc/simple_add/nproc-1/..
 ${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o \
-	$(BUILD_DIR)/%/../common/syscalls.o
+	$(BUILD_DIR)/%/../common/syscalls.o \
+	| FNAME_DIRS
 
 	$(CC) $^ ${SRC_DIR}/entry.S $(CFLAGS) ${INCLUDES} $(LDFLAGS) -o $@
 
@@ -145,15 +147,13 @@ ${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o \
 # Secondary expansion used to access the pattern rule in the dependency list
 .SECONDEXPANSION:
 $(BUILD_DIR)/%/testcase.o: \
-	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*))))
-	
-	mkdir -p $(dir $@)
+	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*)))) \
+	| FNAME_DIRS
+
 	$(CC) $(CFLAGS) ${INCLUDES} -c $^ -o $@
 
-$(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c
-	mkdir -p $(dir $@)
+$(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c | COMMON_DIRS
 	$(CC) $(CFLAGS) ${INCLUDES} -w -c $< -o $@
-
 
 # --------------------------------- ASSEMBLY ----------------------------------
 .PHONY: assembly
@@ -161,7 +161,8 @@ assembly: $(ASSEMBLIES)
 
 .SECONDEXPANSION:
 $(BUILD_DIR)/%/testcase.S: \
-	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*))))
+	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*)))) \
+	| FNAME_DIRS
 
 	$(CC) $(CFLAGS) ${INCLUDES} -S $^ -o $@
 
@@ -169,37 +170,50 @@ $(BUILD_DIR)/%/testcase.S: \
 .PHONY: sim
 sim: $(TRACES)
 
-${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../testcase.elf
-	mkdir -p $(dir $@)
+${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../testcase.elf | NPROC_DIRS
+# 	mkdir -p $(dir $@)
 	$(SPIKE) -p$(N_PROC) -l --isa=$(ISA) $< 2> $@
 
 .PHONY: disassembly
 disassembly: $(DISASSEMBLIES)
 
-${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/testcase.elf
-	mkdir -p $(dir $@)
+${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
+#	mkdir -p $(dir $@)
 	$(OBJDUMP) -S -D $< > $@
 
 .PHONY: histogram
 histogram: $(HISTOGRAMS)
 
-${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/testcase.elf
-	mkdir -p $(dir $@)
+${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
+#	mkdir -p $(dir $@)
 	$(SPIKE) -g --isa=$(ISA) $< 2> $@
 
 .PHONY: extract_main
 extract_main: $(MAIN_TRACES)
 
-${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc
-	mkdir -p $(dir $@)
+${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc | NPROC_DIRS
+# mkdir -p $(dir $@)
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
 	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/testcase.trc > $@
 
-${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm
+${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
-# ----------------------- CLEAN -----------------------
+#	Directory targets, create all needed directories in one
+NPROC_DIRS:
+	@echo Making all NPROC_DIRS
+	mkdir -p $(NPROC_DIRS)
+
+FNAME_DIRS:
+	@echo Making all FNAME_DIRS
+	mkdir -p $(FNAME_DIRS)
+
+COMMON_DIRS:
+	@echo Making all COMMON_DIRS
+	mkdir -p $(COMMON_DIRS)
+
+# ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
 clean:
 	rm -r ${BUILD_DIR}
