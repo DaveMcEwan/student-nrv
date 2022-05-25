@@ -44,20 +44,20 @@ R_FNAME		= $(call CSV_COL,6,${row})
 TRACES := $(foreach row,${CSV_ROWS},$\
 	${BUILD_DIR}/$\
 	rv$(call R_XLEN)$(call R_ISA)-$(call R_ABI)-$(call R_COMPILER)/$\
-	$(call R_FNAME)/nproc-$(call R_NPROC)/instr-trace.trc)
+	$(call R_FNAME)/nproc-$(call R_NPROC)/testcase.trc)
 
 # 	Form the other targets using string manipulation with the current target
-MAIN_TRACES := $(subst instr-trace,main-instr-trace,${TRACES})
+MAIN_TRACES := $(subst testcase,main,${TRACES})
 
 # Go up one directory - places us in the FNAME directory
 NPROC_DIRS := $(dir ${TRACES})
 FNAME_DIRS := $(addsuffix ../,${NPROC_DIRS})
 
-HISTOGRAMS := $(addsuffix histogram.hst,${FNAME_DIRS})
-OBJECTS := $(addsuffix testcase.o,${FNAME_DIRS}) # ${BUILD_DIR}/%/testcase.o
-EXECUTABLES := $(addsuffix testcase.elf,${FNAME_DIRS})
-DISASSEMBLIES := $(addsuffix disassembly.dasm,${FNAME_DIRS})
-MAIN_DISASSEMBLIES := $(subst disassembly, main-disassembly,${DISASSEMBLIES})
+OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
+HISTOGRAMS 		   := $(subst .o,.hst,${OBJECTS})
+EXECUTABLES 	   := $(subst .o,.elf,${OBJECTS})
+DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
+MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
 # ----- Variable definitions based on the pattern rule -----
 # Example directory name : rv32gc-ilp32-gcc/printf/nproc-2/
@@ -132,7 +132,6 @@ build: $(EXECUTABLES)
 
 # Executable target
 # example $* = rv32gc-ilp32-gcc/simple_add/nproc-1/..
-# https://www.gnu.org/software/make/manual/html_node/Prerequisite-Types.html
 ${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o \
 	$(BUILD_DIR)/%/../common/syscalls.o
 
@@ -159,35 +158,34 @@ $(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c
 .PHONY: sim
 sim: $(TRACES)
 
-# $(addsuffix $(dir ${BUILD_DIR}/%), /testcase.elf)
-${BUILD_DIR}/%/instr-trace.trc: ${BUILD_DIR}/%/../testcase.elf
+${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../testcase.elf
 	mkdir -p $(dir $@)
 	$(SPIKE) -p$(N_PROC) -l --isa=$(ISA) $< 2> $@
 
 .PHONY: disassembly
 disassembly: $(DISASSEMBLIES)
 
-${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/testcase.elf
+${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/testcase.elf
 	mkdir -p $(dir $@)
 	$(OBJDUMP) -S -D $< > $@
 
 .PHONY: histogram
 histogram: $(HISTOGRAMS)
 
-${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/testcase.elf
+${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/testcase.elf
 	mkdir -p $(dir $@)
 	$(SPIKE) -g --isa=$(ISA) $< 2> $@
 
 .PHONY: extract_main
 extract_main: $(MAIN_TRACES)
 
-${BUILD_DIR}/%/main-instr-trace.trc: ${BUILD_DIR}/%/../main-disassembly.dasm ${BUILD_DIR}/%/instr-trace.trc
+${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc
 	mkdir -p $(dir $@)
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
-	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/instr-trace.trc > $@
+	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/testcase.trc > $@
 
-${BUILD_DIR}/%/../main-disassembly.dasm: ${BUILD_DIR}/%/../disassembly.dasm
+${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm
 	sed -n '/<main>:/,/ret/p' $< > $@
 
 # ----------------------- CLEAN -----------------------
