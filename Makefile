@@ -10,99 +10,78 @@ default: disassembly
 default: histogram
 default: extract_main
 
-# Macro definitions for directories to be used in the compile lines
-SRC_DIR = ./src
-SRC_OBJS_DIR = ./src/objs
-CURRENT_DIR = .
-BUILD_DIR = ./build
-# $(abspath ./build)
-
-INCLUDES = -I./include
-
-MK_CSV :=  ./csv/csv.mk
-CSV ?= ./csv/config5.csv
-
-# Checking if a CSV FNAME is set
-ifndef CSV
-$(shell echo There currently is no CSV FNAME set)
-else
-$(shell echo CSV FNAME currently set to : ${CSV})
-endif
-
-include ${MK_CSV}
-
-# 	Label for a single target FNAME
-# TODO : Adjust so that this isn't built around a single target
-#	- One thing to note for the future, there are going to be multiple test cases per riscv test case configuration
-#	- TARGET is the C source code we are building around; these are going to be placed in the subdirectories of /build
-# TARGET = ${CURRENT_DIR}/baremetal-example
-TEST_CASES = ./test_cases
-
-# CSV and build directory forming
-#	Variables
-# R_XLEN = $(call CSV_VALUE_FIND, $*, 1)
-# R_COMPILER = $(call CSV_VALUE_FIND, $*, 2)
-# R_ISA = $(call CSV_VALUE_FIND, $*, 3)
-# R_ABI = $(call CSV_VALUE_FIND, $*, 4)
-# R_NPROC = $(call CSV_VALUE_FIND, $*, 5)
-# R_FNAME = $(call CSV_VALUE_FIND, $*, 6)
-
-comma:= ,
-empty:=
-dash := -
-space:= $(empty) $(empty)
-
-#	Variables based on the directory names
-#	Folder name :	rv32gc-ilp32-gcc/simple_add
-# This is input through the pattern rule and so we must break this down using $*
-# https://www.gnu.org/software/make/manual/html_node/Text-Functions.html
-# Using $shell
-# COMPILER = $(shell echo $* | cut -d'-' -f3 | cut -d'/' -f1)
-# ISA		 = $(shell echo $* | cut -d'-' -f1)
-# XLEN 	 = $(findstring 32, ${ISA})
-# XLEN 	 ?= $(findstring 64, ${ISA})
-# ABI		 = $(shell echo $* | cut -d'-' -f2)
-# FNAME    = $(shell echo $* | cut -d'/' -f2)
-
-# Just using Makefile functions
-DIRECTORY_NAME = $(subst $(dash),$(space),$*) # TODO - Rename into something more coherent
-DIRECTORY_NAME_SPLIT = $(subst /,$(space), $(DIRECTORY_NAME))
-ISA = $(word 1, $(DIRECTORY_NAME_SPLIT))
-ABI = $(word 2, $(DIRECTORY_NAME_SPLIT))
-COMPILER = $(word 3, $(DIRECTORY_NAME_SPLIT))
-FNAME = $(word 4, $(DIRECTORY_NAME_SPLIT))
-N_PROC = $(word 6, $(DIRECTORY_NAME_SPLIT))
-XLEN 	 = $(findstring 32, ${ISA})
-XLEN 	 ?= $(findstring 64, ${ISA})
-
-CC = riscv$(XLEN)-unknown-elf-$(COMPILER)
-# ISA = rv$(XLEN)$(ISA)
-
-#	Variables based on the CSV 
-R_XLEN	= $(call CSV_COL,1,${row})
-R_COMPILER	= $(call CSV_COL,2,${row})
-R_ISA	= $(call CSV_COL,3,${row})
-R_ABI	= $(call CSV_COL,4,${row})
-R_NPROC = $(call CSV_COL,5,${row})
-R_FNAME	= $(call CSV_COL,6,${row})
-
-# CC = riscv$(R_XLEN)-unknown-elf-$(R_COMPILER)
-# ISA = rv$(R_XLEN)$(R_ISA)
-
-LINKER_SCRIPT = link.ld
-
-# Parameter to determine how many processors to simulated when using Spike
-# N_PROC ?= 4
-
 # Checking if a RISCV compiler is present
 ifndef RISCV
 $(error "[ ERROR ] - RISCV variable not set!")
 endif
 
+# Macro definitions for directories to be used in the compile lines
+SRC_DIR = ./src
+BUILD_DIR = ./build
+
+INCLUDES = -I./include
+
+TEST_CASES = ./test_cases
+LINKER_SCRIPT = link.ld
+
+MK_CSV :=  ./csv/csv.mk
+CSV ?= ./csv/config5.csv
+
+$(shell echo CSV FNAME currently set to : ${CSV})
+
+include ${MK_CSV}
+
+# ----- Variables based on the CSV - Used for initial directory formatting -----
+R_XLEN		= $(call CSV_COL,1,${row})
+R_COMPILER	= $(call CSV_COL,2,${row})
+R_ISA		= $(call CSV_COL,3,${row})
+R_ABI		= $(call CSV_COL,4,${row})
+R_NPROC 	= $(call CSV_COL,5,${row})
+R_FNAME		= $(call CSV_COL,6,${row})
+
+#	Forming the targets
+# Target instruction trace, based on the CSV values
+TRACES := $(foreach row,${CSV_ROWS},$\
+	${BUILD_DIR}/$\
+	rv$(call R_XLEN)$(call R_ISA)-$(call R_ABI)-$(call R_COMPILER)/$\
+	$(call R_FNAME)/nproc-$(call R_NPROC)/instr-trace.trc)
+
+# 	Form the other targets using string manipulation with the current target
+MAIN_TRACES := $(subst instr-trace,main-instr-trace,${TRACES})
+
+# Go up one directory - places us in the FNAME directory
+NPROC_DIRS := $(dir ${TRACES})
+FNAME_DIRS := $(addsuffix ../,${NPROC_DIRS})
+
+HISTOGRAMS := $(addsuffix histogram.hst,${FNAME_DIRS})
+OBJECTS := $(addsuffix testcase.o,${FNAME_DIRS}) # ${BUILD_DIR}/%/testcase.o
+EXECUTABLES := $(addsuffix testcase.elf,${FNAME_DIRS})
+DISASSEMBLIES := $(addsuffix disassembly.dasm,${FNAME_DIRS})
+MAIN_DISASSEMBLIES := $(subst disassembly, main-disassembly,${DISASSEMBLIES})
+
+# ----- Variable definitions based on the pattern rule -----
+# Example directory name : rv32gc-ilp32-gcc/printf/nproc-2/
+DIRNAME_SPLIT1 = $(subst -,$(space),$*)
+DIRNAME_SPLIT2 = $(subst /,$(space), $(DIRNAME_SPLIT1))
+# The example at this point would then be : rv32gc ilp32 gcc printf nproc 2
+ISA 		= $(word 1, $(DIRNAME_SPLIT2))
+ABI			= $(word 2, $(DIRNAME_SPLIT2))
+COMPILER 	= $(word 3, $(DIRNAME_SPLIT2))
+FNAME 		= $(word 4, $(DIRNAME_SPLIT2))
+# The 5th word is nproc; no information we can take from this
+N_PROC 		= $(word 6, $(DIRNAME_SPLIT2))
+
+# If there is a '32' present in rv__, set XLEN to it. 
+#	Else set it to 64 if that is present
+XLEN 	 	= $(findstring 32, ${ISA})
+XLEN 	 	?= $(findstring 64, ${ISA})
+
+# Form the compilation command
+CC = riscv$(XLEN)-unknown-elf-$(COMPILER)
+
 OBJDUMP = $(RISCV)/bin/riscv$(XLEN)-unknown-elf-objdump
-SIZE = $(RISCV)/bin/riscv$(XLEN)-unknown-elf-size
-# LD = $(RISCV)/bin/riscv32-unknown-elf-ld # Using link flag with the default RISC-V compiler command
-SPIKE = $(RISCV)/bin/spike
+SIZE 	= $(RISCV)/bin/riscv$(XLEN)-unknown-elf-size
+SPIKE 	= $(RISCV)/bin/spike
 
 # Default compiler flags
 CFLAGS = -march=$(ISA)
@@ -116,65 +95,25 @@ CFLAGS += -lgcc
 
 LDFLAGS = -T${LINKER_SCRIPT}
 
-# Form the overall directory name
-TRACES := $(foreach row,${CSV_ROWS},$\
-	${BUILD_DIR}/$\
-	rv$(call R_XLEN)$(call R_ISA)-$(call R_ABI)-$(call R_COMPILER)/$\
-	$(call R_FNAME)/nproc-$(call R_NPROC)/instr-trace.trc)
-
-MAIN_TRACES := $(subst instr-trace,main-instr-trace,${TRACES})
-# Strip down the directory name to grab the needed variables (can't get them directly from CSV rows)
-# Note that these are lists of items, appending should be done using addsuffix to add to all items
-NPROCDIRS := $(dir ${TRACES})
-TESTDIRS := $(addsuffix ../,${NPROCDIRS})
-# TESTDIRS := $(abspath ${INTERMEDIATE_DIRS})
-# FILE_NAME := $(notdir ${TESTDIRS})
-# COMMON_ARCH := $(addsuffix ../common,${TESTDIRS})
-# COMMON_ARCH := ${TESTDIRS}/../common # ${BUILD_DIR}/%/../common/
-HISTOGRAMS := $(addsuffix histogram.hst,${TESTDIRS})
-OBJECTS := $(addsuffix testcase.o,${TESTDIRS}) # ${BUILD_DIR}/%/testcase.o
-EXECUTABLES := $(addsuffix testcase.elf,${TESTDIRS})
-DISASSEMBLIES := $(addsuffix disassembly.dasm,${TESTDIRS})
-MAIN_DISASSEMBLIES := $(subst disassembly, main-disassembly,${DISASSEMBLIES})
-
-# Variables
-
-##### Can't grab variables in this way as this forms a list of variables which 
-#####	is undesired since calling this in a recipe will just return the whole 
-#####	list of variables. Accessing the specific one in a target requires 
-#####	using the pattern rule.
-
-ARCHDIRS := ${TESTDIRS:./build/%/=%}
-TESTCASENAME := ${notdir ${TESTDIRS}}
-# STRIPPED_ARCHDIRS := $(dir ${ARCHDIRS})
-# STRIPPED_ARCHDIRS := $(subst /, $(space), ${STRIPPED_ARCHDIRS}) 
-
-# Need another way of grabbing the sections of STRIPPED_ARCHDIRS 
-#	(since we need to consider that this is a whole list rather than just a single word)
-# dash := -
-# ISA = $(word 1,$(subst $(dash),$(space),${STRIPPED_ARCHDIRS}))
-# XLEN = $(findstring 32, ${STRIPPED_ARCHDIRS})
-# XLEN ?= $(findstring 64, ${STRIPPED_ARCHDIRS})
-# # can use $(findstring)
-# ABI = $(word 2,$(subst $(dash),$(space),${STRIPPED_ARCHDIRS}))
-# COMPILER = $(word 3,$(subst $(dash),$(space),${STRIPPED_ARCHDIRS}))
-
-# Can't grab the variables directly like this
-# CC = riscv$(XLEN)-unknown-elf-$(COMPILER)
-# ISA = rv$(call R_XLEN)$(call R_ISA)
-
-test: TRACES
+#	Testing
+print_all: TRACES
 	@echo TRACES
 	@echo ${TRACES}
 	@echo
 	@echo MAIN_TRACES
 	@echo ${MAIN_TRACES}
 	@echo
-	@echo TESTDIRS
-	@echo ${TESTDIRS}
+	@echo NPROC_DIRS
+	@echo ${NPROC_DIRS}
+	@echo
+	@echo FNAME_DIRS
+	@echo ${FNAME_DIRS}
 	@echo
 	@echo HISTOGRAMS
 	@echo ${HISTOGRAMS}
+	@echo
+	@echo OBJECTS
+	@echo ${OBJECTS}
 	@echo
 	@echo EXECUTABLES
 	@echo ${EXECUTABLES}
@@ -182,121 +121,73 @@ test: TRACES
 	@echo DISASSEMBLIES
 	@echo ${DISASSEMBLIES}
 	@echo
-	@echo ARCHDIRS
-	@echo ${ARCHDIRS}
-	@echo
-	@echo NPROCDIRS
-	@echo ${NPROCDIRS}
-	@echo
+	@echo MAIN_DISASSEMBLIES
+	@echo ${MAIN_DISASSEMBLIES}
 
-#	Testing
 TRACES:
-	mkdir -p $(TESTDIRS)
-# ----------------------- BUILD -----------------------
-# EXECUTABLES := $(addprefix ${BUILD_DIR}/,$(addsuffix /, $(CSV_ROWS))) 
-# Target .elf files
-# EXECUTABLES := $(addprefix ${BUILD_DIR}/,$(addsuffix /testcase.elf, $(CSV_ROWS))) #TODO - Break down
-#	from CSV_ROWS
+	mkdir -p $(FNAME_DIRS)
 
 .PHONY: build
 build: $(EXECUTABLES)
-	@echo BUILD COMPLETE
 
-# /pri/nesi/RISCV/nrv/build/rv32gc-ilp32-gcc/simple_add/nproc-1/../testcase.elf
-# The rule to make $(EXECUTABLES)
-# Output ELF
-# ${BUILD_DIR}/%/testcase.elf - Need to have the target written like this (can't use EXECUTABLES)
+# Executable target
+# example $* = rv32gc-ilp32-gcc/simple_add/nproc-1/..
 # https://www.gnu.org/software/make/manual/html_node/Prerequisite-Types.html
-${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o $(BUILD_DIR)/%/../common/syscalls.o
-	@echo --------- Linking into : testcase.elf ---------
-	@echo $*
+${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o \
+	$(BUILD_DIR)/%/../common/syscalls.o
+
 	$(CC) $^ ${SRC_DIR}/entry.S $(CFLAGS) ${INCLUDES} $(LDFLAGS) -o $@
 
-# This is the first thing being done (bottom of the dependency tree) so we mkdir the directory here
-# ./test_cases/$(notdir $(abspath $(dir $@))).c
-# DIRECTORY_NAME_SPLIT = $(subst /,$(space), $(DIRECTORY_NAME))
-# $(subst /, $(space), $@)
-#  $(filter $(TESTCASENAME),$(subst /,$(space), $@))
-# $(word 3, $(subst /, , $(EXECUTABLES)))
-# ${TESTDIRS}/$(word $2, $(subst /, ,%)).c # /$(word 2, $(subst /, , %))
-
+# Bottom of the dependency tree
+# Secondary expansion used to access the pattern rule in the dependency list
 .SECONDEXPANSION:
-$(BUILD_DIR)/%/testcase.o: $$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*))))
-	@echo --------- Compiling into : testcase.o ---------
+$(BUILD_DIR)/%/testcase.o: \
+	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*))))
+	
 	mkdir -p $(dir $@)
-	@echo $(*)
-	@echo $(notdir $*)
-	@echo ISA = $(ISA)
-	@echo ABI = $(ABI)
-	@echo COMPILER = $(COMPILER)
-	@echo FNAME = $(FNAME)
-	@echo XLEN = $(XLEN)
-	@echo FILE_NAME = ${TEST_CASES}/$(word 2, $(subst /,$(space), $*))
-	@echo Dependencies : $^
 	$(CC) $(CFLAGS) ${INCLUDES} -c $^ -o $@
 
 # Producing the assembly FNAME for debugging
 # $(CC) $(CFLAGS) ${INCLUDES} -S ${TEST_CASES}/$(FNAME).c -o ${BUILD_DIR}/$*/testcase.S
-# TODO : Move assembly file creation to a different target
+# TODO : Add assembly file target and recipe
 
-# Must be built within a specific directory because the compiled code is different in different architectures
-# ${COMMON_ARCH}/syscalls.o
 $(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c
-	@echo --------- Compiling into : syscalls.o ---------
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) ${INCLUDES} -w -c $< -o $@
 
-# ----------------------- INSTRUCTION TRACE, DISASSEMBLY and HISTOGRAM -----------------------
-# TRACES := $(addprefix ${BUILD_DIR}/,$(addsuffix /instruction-trace.log, $(CSV_ROWS))) 
-# TRACES := $(foreach r,${CSV_ROWS},$\
-# 	${BUILD}/$\
-# 	rv$(call R_XLEN,$r)-$(call R_ABI,$r)-$(call R_COMPILER,$r)/$\
-# 	$(call R_FNAME,$r)/nproc$(call R_NPROC,$r).trc)
+# --------------- INSTRUCTION TRACE, DISASSEMBLY and HISTOGRAM ---------------
 .PHONY: sim
 sim: $(TRACES)
-	@echo SIMULATED
 
 # $(addsuffix $(dir ${BUILD_DIR}/%), /testcase.elf)
 ${BUILD_DIR}/%/instr-trace.trc: ${BUILD_DIR}/%/../testcase.elf
 	mkdir -p $(dir $@)
-	@echo --------- Simulation log printed to : ${BUILD_DIR}/$*/instruction-trace.log ---------
-	@echo $(dir $(BUILD_DIR)/$*.trc)
-	@echo $(DIRECTORY_NAME_SPLIT)
 	$(SPIKE) -p$(N_PROC) -l --isa=$(ISA) $< 2> $@
 
-# Choosing to separate the disassembly FNAME production from the simulation as someone may want to see the disassembly without simulating
-# DISASSEMBLIES := $(addprefix ${BUILD_DIR}/,$(addsuffix /disassembly.dasm, $(CSV_ROWS))) 
 .PHONY: disassembly
 disassembly: $(DISASSEMBLIES)
 
 ${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/testcase.elf
 	mkdir -p $(dir $@)
-	@echo --------- Disassembly printed to : ${BUILD_DIR}/$*/disassembly.dasm ---------
-	@echo $(DISASSEMBLIES)
 	$(OBJDUMP) -S -D $< > $@
 
-# HISTOGRAMS := $(addprefix ${BUILD_DIR}/,$(addsuffix /histogram.txt, $(CSV_ROWS))) 
 .PHONY: histogram
 histogram: $(HISTOGRAMS)
 
 ${BUILD_DIR}/%/histogram.hst: ${BUILD_DIR}/%/testcase.elf
 	mkdir -p $(dir $@)
-	@echo --------- Histogram printed to : $@ ---------
 	$(SPIKE) -g --isa=$(ISA) $< 2> $@
 
-# MAIN_TRACES := $(addprefix ${BUILD_DIR}/,$(addsuffix /main-instr-trace.trc, $(CSV_ROWS))) 
 .PHONY: extract_main
 extract_main: $(MAIN_TRACES)
 
 ${BUILD_DIR}/%/main-instr-trace.trc: ${BUILD_DIR}/%/../main-disassembly.dasm ${BUILD_DIR}/%/instr-trace.trc
-	@echo --------- Extracting the main instruction trace to : $@ ---------
 	mkdir -p $(dir $@)
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
 	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/instr-trace.trc > $@
 
 ${BUILD_DIR}/%/../main-disassembly.dasm: ${BUILD_DIR}/%/../disassembly.dasm
-	@echo --------- Extracting the main disassembly to : $@ ---------
 	sed -n '/<main>:/,/ret/p' $< > $@
 
 # ----------------------- CLEAN -----------------------
@@ -335,8 +226,3 @@ clean:
 # 	@echo ""
 # 	@echo "-------------  Build done, starting simulation  -------------"
 # 	@$(SPIKE) -p$(N_PROC) --isa=$(ISA) --ic=64:4:8 --dc=64:4:8 --l2=256:8:8 $(TARGET).elf
-
-# clean_sim:
-# 	rm ${BUILD_DIR}/*/*.txt
-# 	rm ${BUILD_DIR}/*/*.dasm
-# 	rm ${BUILD_DIR}/*/*.log
