@@ -18,16 +18,16 @@ $(error "[ ERROR ] - RISCV variable not set!")
 endif
 
 # Macro definitions for directories to be used in the compile lines
-SRC_DIR = ./src
-BUILD_DIR = ./build
+SRC_DIR 		= ./src
+BUILD_DIR 		= ./build
 
-INCLUDES = -I./include
+INCLUDES 		= -I./include
 
-TEST_CASES = ./test_cases
-LINKER_SCRIPT = link.ld
+TEST_CASES 		= ./test_cases
+LINKER_SCRIPT 	= link.ld
 
-MK_CSV :=  ./csv/csv.mk
-CSV ?= ./csv/config5.csv
+MK_CSV 			:=  ./csv/csv.mk
+CSV 			?= ./csv/config5.csv
 
 $(shell echo CSV FNAME currently set to : ${CSV})
 
@@ -171,28 +171,24 @@ $(BUILD_DIR)/%/testcase.S: \
 sim: $(TRACES)
 
 ${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../testcase.elf | NPROC_DIRS
-# 	mkdir -p $(dir $@)
 	$(SPIKE) -p$(N_PROC) -l --isa=$(ISA) $< 2> $@
 
 .PHONY: disassembly
 disassembly: $(DISASSEMBLIES)
 
 ${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
-#	mkdir -p $(dir $@)
 	$(OBJDUMP) -S -D $< > $@
 
 .PHONY: histogram
 histogram: $(HISTOGRAMS)
 
 ${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
-#	mkdir -p $(dir $@)
 	$(SPIKE) -g --isa=$(ISA) $< 2> $@
 
 .PHONY: extract_main
 extract_main: $(MAIN_TRACES)
 
 ${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc | NPROC_DIRS
-# mkdir -p $(dir $@)
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
 	sed -n '/$(START_ADDRESS)/,/$(END_ADDRESS)/p' ${BUILD_DIR}/$*/testcase.trc > $@
@@ -224,16 +220,6 @@ clean:
 # debug:
 # 	@echo "-------------------  Starting Debugging  -------------------"
 # 	@$(SPIKE) -d -p$(N_PROC) --isa=$(ISA) $(TARGET).elf
-
-# # Build and simulate (build is forced by having the .elf dependency?)
-# .PHONY: build-sim
-# build-sim: $(TARGET).elf
-# 	@echo ""
-# 	@echo "-------------  Build done, starting simulation  -------------"
-# 	@$(SPIKE) -p$(N_PROC) --isa=$(ISA)  $(TARGET).elf
-
-# # ${BUILD_DIR}/%/<log FNAME placeholder>:
-# # Need to establish the target macro names for the different test cases
 
 # # Extra option for simulating cache
 # .PHONY: build-sim-cache
