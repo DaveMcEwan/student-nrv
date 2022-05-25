@@ -6,6 +6,7 @@
 
 # default: build
 # default: sim
+default: assembly
 default: disassembly
 default: histogram
 default: extract_main
@@ -56,6 +57,7 @@ FNAME_DIRS := $(addsuffix ../,${NPROC_DIRS})
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
 HISTOGRAMS 		   := $(subst .o,.hst,${OBJECTS})
 EXECUTABLES 	   := $(subst .o,.elf,${OBJECTS})
+ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
 DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
@@ -127,6 +129,8 @@ print_all: TRACES
 TRACES:
 	mkdir -p $(FNAME_DIRS)
 
+# ----------------------------------- BUILD ------------------------------------
+
 .PHONY: build
 build: $(EXECUTABLES)
 
@@ -146,13 +150,20 @@ $(BUILD_DIR)/%/testcase.o: \
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) ${INCLUDES} -c $^ -o $@
 
-# Producing the assembly FNAME for debugging
-# $(CC) $(CFLAGS) ${INCLUDES} -S ${TEST_CASES}/$(FNAME).c -o ${BUILD_DIR}/$*/testcase.S
-# TODO : Add assembly file target and recipe
-
 $(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) ${INCLUDES} -w -c $< -o $@
+
+
+# --------------------------------- ASSEMBLY ----------------------------------
+.PHONY: assembly
+assembly: $(ASSEMBLIES)
+
+.SECONDEXPANSION:
+$(BUILD_DIR)/%/testcase.S: \
+	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*))))
+
+	$(CC) $(CFLAGS) ${INCLUDES} -S $^ -o $@
 
 # --------------- INSTRUCTION TRACE, DISASSEMBLY and HISTOGRAM ---------------
 .PHONY: sim
