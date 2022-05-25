@@ -6,29 +6,26 @@ See this for info on Markdown tables:
 
 Updated in line with how the Makefile is current set up
 
-<Arch> = 	rv$(XLEN)$(ISA)-$(R_ABI)-$(COMPILER)
+$(ARCH) = 	rv\$(XLEN)\$(ISA)-\$(R_ABI)-\$(COMPILER)
 
 
 |                   Dependencies                      |                     Recipes                      |                         Targets                           |
 |-----------------------------------------------------|--------------------------------------------------|-----------------------------------------------------------|
-|             test_case/$(TEST_CASE).c                | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -S |          build/<Arch>/$(FNAME)/testcase.S                 |
+| src/$(TEST_CASE).c, FNAME_DIRS | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -S | build/$(ARCH)/$(FNAME)/testcase.S |
 |                                                     |                                                  |                                                           |
-|             test_case/$(TEST_CASE).c                | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -c |          build/<Arch>/$(FNAME)/testcase.o                 |
+| src/$(TEST_CASE).c, FNAME_DIRS | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -c | build/$(ARCH)/$(FNAME)/testcase.o |
+| src/common/syscalls.c | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -w -c | build/$(ARCH)/common/syscalls.o |
 |                                                     |                                                  |                                                           |
-|       build/<Arch>/$(FNAME)/$(TEST_CASE).o          | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -o |           build/<Arch>/$(FNAME)/testcase.elf              |
-|           build/<Arch>/common/syscalls.o            |                                                  |                                                           |
-|                   src/entry.S                       |                                                  |                                                           |
+| build/$(ARCH)/$(FNAME)/$(TEST_CASE).o, build/$(ARCH)/common/syscalls.o, src/common/entry.S, FNAME_DIRS | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -o | build/$(ARCH)/$(FNAME)/testcase.elf |
 |                                                     |                                                  |                                                           |
-|         build/<Arch>/$(FNAME)/testcase.elf          |              spike -l --isa=$(ISA)               |      build/<Arch>/$(FNAME)/nproc$(NPROC)/testcase.trc     |
+| build/$(ARCH)/$(FNAME)/testcase.elf |              spike -l --isa=$(ISA)               |      build/$(ARCH)/$(FNAME)/nproc$(NPROC)/testcase.trc     |
 |                                                     |                                                  |                                                           |
-|         build/<Arch>/$(FNAME)/testcase.elf          |      riscv$(XLEN)-unknown-elf-objdump -S -D      |           build/<Arch>/$(FNAME)/testcase.dasm             |
+| build/$(ARCH)/$(FNAME)/testcase.elf, FNAME_DIRS |      riscv$(XLEN)-unknown-elf-objdump -S -D      |           build/$(ARCH)/$(FNAME)/testcase.dasm             |
 |                                                     |                                                  |                                                           |
-|         build/<Arch>/$(FNAME)/testcase.elf          |              spike -g --isa=$(ISA)               |           build/<Arch>/$(FNAME)/testcase.hst              |
+| build/$(ARCH)/$(FNAME)/testcase.elf, FNAME_DIRS |              spike -g --isa=$(ISA)               |           build/$(ARCH)/$(FNAME)/testcase.hst              |
 |                                                     |                                                  |                                                           |
-|         build/<Arch>/$(FNAME)/testcase.dasm         |                      sed -n                      |            build/<Arch>/$(FNAME)/main.dasm                |
+| build/$(ARCH)/$(FNAME)/testcase.dasm |                      sed -n                      |            build/$(ARCH)/$(FNAME)/main.dasm                |
 |                                                     |                                                  |                                                           |
-|           build/<Arch>/$(FNAME)/main.dasm           |                      sed -n                      |        build/<Arch>/$(FNAME)/nproc$(NPROC)/main.trc       |
-|   build/<Arch>/$(FNAME)/nproc$(NPROC)/testcase.trc  |                                                  |                                                           |
-|                                                     |                                                  |                                                           |
+|build/$(ARCH)/$(FNAME)/main.dasm, build/$(ARCH)/$(FNAME)/nproc$(NPROC)/testcase.trc|                      sed -n                      |        build/$(ARCH)/$(FNAME)/nproc$(NPROC)/main.trc       |
 
 

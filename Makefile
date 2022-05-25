@@ -19,11 +19,11 @@ endif
 
 # Macro definitions for directories to be used in the compile lines
 SRC_DIR 		= ./src
+SRC_COMMON_DIR  = ./src/common
 BUILD_DIR 		= ./build
 
 INCLUDES 		= -I./include
 
-TEST_CASES 		= ./test_cases
 LINKER_SCRIPT 	= link.ld
 
 MK_CSV 			:=  ./csv/csv.mk
@@ -141,18 +141,18 @@ ${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o \
 	$(BUILD_DIR)/%/../common/syscalls.o \
 	| FNAME_DIRS
 
-	$(CC) $^ ${SRC_DIR}/entry.S $(CFLAGS) ${INCLUDES} $(LDFLAGS) -o $@
+	$(CC) $^ ${SRC_COMMON_DIR}/entry.S $(CFLAGS) ${INCLUDES} $(LDFLAGS) -o $@
 
 # Bottom of the dependency tree
 # Secondary expansion used to access the pattern rule in the dependency list
 .SECONDEXPANSION:
 $(BUILD_DIR)/%/testcase.o: \
-	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*)))) \
+	$$(addsuffix .c,$$(addprefix $(SRC_DIR)/,$$(word 2, $$(subst /, ,$$*)))) \
 	| FNAME_DIRS
 
 	$(CC) $(CFLAGS) ${INCLUDES} -c $^ -o $@
 
-$(BUILD_DIR)/%/../common/syscalls.o: ${SRC_DIR}/syscalls.c | COMMON_DIRS
+$(BUILD_DIR)/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
 	$(CC) $(CFLAGS) ${INCLUDES} -w -c $< -o $@
 
 # --------------------------------- ASSEMBLY ----------------------------------
@@ -161,7 +161,7 @@ assembly: $(ASSEMBLIES)
 
 .SECONDEXPANSION:
 $(BUILD_DIR)/%/testcase.S: \
-	$$(addsuffix .c,$$(addprefix ./test_cases/,$$(word 2, $$(subst /, ,$$*)))) \
+	$$(addsuffix .c,$$(addprefix $(SRC_DIR)/,$$(word 2, $$(subst /, ,$$*)))) \
 	| FNAME_DIRS
 
 	$(CC) $(CFLAGS) ${INCLUDES} -S $^ -o $@
