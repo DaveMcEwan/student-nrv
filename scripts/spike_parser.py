@@ -1,6 +1,5 @@
 # Extract instructions from tracelog generated from Spike.
 # Output the frequency of instructions used. 
-# Create bar chart and pie chart
 import sys
 import collections
 
@@ -66,40 +65,48 @@ def extract_instructions():
         if (words[2] != "exception" and not(exception_found)): # Instruction detected
             count_instrns += 1 # Increment instruction count
             # words[4] is the detected instruction
-            # Increase cycle count
+
+            # Increase cycle count based on the instruction's CPI
             if words[4] not in cpi_list:
                 count_cycles += 1
             else:
                 count_cycles += cpi_list[words[4]]
 
+            # Check category the instruction is in and increment accordingly
             if words[4] in cat_all_loads:
                 count_all_loads += 1
             elif words[4] in cat_all_stores:
                 count_all_stores += 1
+            
+            # Append the instruction to the list of instructions
             instructs.append(words[4])
-
         elif (words[2] == "exception"):
             exception_found = True
-
         # Handles the tval instruction
         elif (len(words) < 5 and exception_found):  
             pass
-
         elif (exception_found):
             if (words[4] == "sret"):
                 exception_found = False
 
+    bandwidth = load_bandwidth = store_bandwidth = 0
+    # Verify the bandwidth measurements with Dave
+    # bandwidth = (count_all_loads + count_all_stores) / 
+    
     print("All instructions : " + str(count_instrns))
     print("Number of cycles : " + str(count_cycles))
     print("All loads : " + str(count_all_loads))
     print("All stores : " + str(count_all_stores))
     print("")
+
+    # List of instructions is then returned as a dictionary where the values
+    #   are the number of times the instruction appeared
     return collections.Counter(instructs)
 
+#   Print the input dictionary key-value pairs
 def print_results(freq_instructs):
     for op, count in freq_instructs.items():
         print(op + "," + str(count))
-
 
 def main():
     freq_instructs = dict(extract_instructions())
