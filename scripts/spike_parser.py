@@ -10,7 +10,7 @@ def extract_instructions():
     cat_all_loads = [ "c.lwsp", "c.lw", "lb", "lh", "lw", "lbu", "lhu", "flw", "c.flw", "c.flwsp" ] # No load immediate instructions because they don't access memory?
     cat_all_stores = [ "c.sw", "c.swsp", "sb", "sh", "sw", "c.fsw", "c.fswsp", "fsw" ]
     # Ints storing the number of load and store instructions that have been executed
-    count_all_loads = count_all_stores = 0
+    count_all_instrns = count_all_loads = count_all_stores = 0
 
     exception_found = False
     instructs = []
@@ -18,6 +18,7 @@ def extract_instructions():
     for line in sys.stdin:
         words = line.split()
         if (words[2] != "exception" and not(exception_found)): # Instruction detected
+            count_all_instrns += 1 # Increment instruction count
             # words[4] is the detected instruction
 
             if words[4] in cat_all_loads:
@@ -37,6 +38,7 @@ def extract_instructions():
             if (words[4] == "sret"):
                 exception_found = False
 
+    print("All instructions : " + str(count_all_instrns))
     print("All loads : " + str(count_all_loads))
     print("All stores : " + str(count_all_stores))
     print("")
