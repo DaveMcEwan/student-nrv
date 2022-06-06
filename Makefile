@@ -11,6 +11,7 @@ default: assembly
 default: disassembly
 default: histogram
 default: extract_main
+default: extract_instruction_names
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -49,7 +50,8 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 	$(call R_FNAME)/nproc-$(call R_NPROC)/testcase.trc)
 
 # 	Form the other targets using string manipulation with the current target
-MAIN_TRACES := $(subst testcase,main,${TRACES})
+MAIN_TRACES 	  := $(subst testcase,main,${TRACES})
+MAIN_INSTRUCTIONS := $(subst testcase,instructions-only,${TRACES})
 
 # Go up one directory - places us in the FNAME directory
 NPROC_DIRS 	:= $(dir ${TRACES})
@@ -195,6 +197,14 @@ ${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc
 
 ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
+
+.PHONY: extract_instruction_names
+extract_instruction_names: ${MAIN_INSTRUCTIONS}
+
+# 3 - Instruction memory
+# 5 - Instruction
+${BUILD_DIR}/%/instructions-only.trc: ${BUILD_DIR}/%/main.trc
+	cat $< | awk '{print $$3, $$5}' > $@
 
 #	Directory targets, create all needed directories in one
 NPROC_DIRS:
