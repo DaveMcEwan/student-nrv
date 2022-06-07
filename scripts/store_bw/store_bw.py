@@ -1,7 +1,7 @@
-# Analyse the instruction trace input through stdin
-# Output the number of bytes transferred per instruction on the corresponding line
-# Prepares the byte stream to then be used in the display script
+# Extract instructions from tracelog generated from Spike.
+# Output the frequency of instructions used. 
 import sys
+import collections
 
 # TODO : Add code to include dictionaries and lists from the associated .isa file.
 #   Need a way of getting the configuration from the instruction trace - maybe
@@ -29,7 +29,7 @@ c_reg_loads = { 'c.lw': {'bytes': 4, 'cycles': 0},
                 'c.fld': {'bytes': 8, 'cycles': 0},
               }
 
-# These will have to be automated in the combined .isa files
+# This will have to be automated in the combined .isa files
 loads_list = []
 loads_list.extend(base_loads.keys())
 loads_list.extend(c_sp_loads.keys()) 
