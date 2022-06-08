@@ -18,7 +18,7 @@ $(ARCH) = 	rv\$(XLEN)\$(ISA)-\$(R_ABI)-\$(COMPILER)
 |                                                     |                                                  |                                                           |
 | build/$(ARCH)/$(FNAME)/$(TEST_CASE).o, build/$(ARCH)/common/syscalls.o, src/common/entry.S, FNAME_DIRS | riscv$(XLEN)-unknown-elf-$(COMPILER) -[flags] -o | build/$(ARCH)/$(FNAME)/testcase.elf |
 |                                                     |                                                  |                                                           |
-| build/$(ARCH)/$(FNAME)/testcase.elf |              spike -l --isa=$(ISA)               |      build/$(ARCH)/$(FNAME)/nproc$(NPROC)/testcase.trc     |
+| build/$(ARCH)/$(FNAME)/testcase.elf |              spike -l --isa=$(ISA)               |      build/$(ARCH)/$(FNAME)/nproc-$(NPROC)/testcase.trc     |
 |                                                     |                                                  |                                                           |
 | build/$(ARCH)/$(FNAME)/testcase.elf, FNAME_DIRS |      riscv$(XLEN)-unknown-elf-objdump -S -D      |           build/$(ARCH)/$(FNAME)/testcase.dasm             |
 |                                                     |                                                  |                                                           |
@@ -26,6 +26,9 @@ $(ARCH) = 	rv\$(XLEN)\$(ISA)-\$(R_ABI)-\$(COMPILER)
 |                                                     |                                                  |                                                           |
 | build/$(ARCH)/$(FNAME)/testcase.dasm |                      sed -n                      |            build/$(ARCH)/$(FNAME)/main.dasm                |
 |                                                     |                                                  |                                                           |
-|build/$(ARCH)/$(FNAME)/main.dasm, build/$(ARCH)/$(FNAME)/nproc$(NPROC)/testcase.trc|                      sed -n                      |        build/$(ARCH)/$(FNAME)/nproc$(NPROC)/main.trc       |
+| build/$(ARCH)/$(FNAME)/main.dasm, build/$(ARCH)/$(FNAME)/nproc-$(NPROC)/testcase.trc | sed -n | build/$(ARCH)/$(FNAME)/nproc-$(NPROC)/main.trc |
+|                                                     |                                                  |                                                           |
+| build/$(ARCH)/$(FNAME)/nproc-$(NPROC)/main.trc | awk '{print $$3, $$5}' | build/$(ARCH)/$(FNAME)/nproc-$(NPROC)/instructions-only.trc |
+
 
 
