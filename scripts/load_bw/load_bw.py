@@ -1,26 +1,29 @@
 # Analyse the instruction trace input through stdin
-# Output the number of bytes transferred per instruction on the corresponding line
+# Output the number of bytes transferred per load instruction 
+#   on the corresponding line
 # Prepares the byte stream to then be used in the display script
+
 import sys
 import os
+import argparse
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..', 'isa'))
 
-# These will have to be automated in the combined .isa files
-loads_dict = {} # List of all dictionaries
+# Input argument parsing (to detect the ISA)
+parser = argparse.ArgumentParser()
+parser.add_argument("--isa", help="RISC-V ISA string")
 
-import base_loads
-print(base_loads.all_dicts)
-loads_dict.update(base_loads.all_dicts)
+args = parser.parse_args() # ISA stored in args.isa
 
-import c_loads
-print(c_loads.all_dicts)
-loads_dict.update(c_loads.all_dicts)
+# Import files/dictionaries based on the ISA argument
+isa_dicts = __import__(args.isa)
+# Overall dictionary for all instructions in this ISA is stored in :
+#   isa_dicts.all_dicts
 
 def count_loads():
     for line in sys.stdin:
         words = line.split()
-        if words[1] in loads_dict:
-            print(loads_dict[words[1]]['bytes'])
+        if words[1] in isa_dicts.load_dict:
+            print(isa_dicts.load_dict[words[1]]['bytes'])
         else:
             print(0)
 
