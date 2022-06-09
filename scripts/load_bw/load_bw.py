@@ -3,6 +3,10 @@
 #   on the corresponding line
 # Prepares the byte stream to then be used in the display script
 
+# Guide for use:
+# Run the command : python3 load_bw/load_bw.py --isa=rv32ic < example.trc
+#   while in the scripts directory
+
 import sys
 import argparse
 import csv
