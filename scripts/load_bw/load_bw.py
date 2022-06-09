@@ -3,7 +3,7 @@
 #   on the corresponding line
 # Prepares the byte stream to then be used in the display script
 
-# Guide for use:
+# Example to guide use:
 # Run the command : python3 load_bw/load_bw.py --isa=rv32ic < example.trc
 #   while in the scripts directory
 
@@ -17,19 +17,14 @@ parser.add_argument("--isa", help="RISC-V ISA string")
 args = parser.parse_args() # ISA argument stored in args.isa
 
 # Function to take in a CSV file and convert it into the desired dictionary format
-def convert_csv_to_dict(isa):
+def convert_csv_to_dict_ld_only(isa):
     test_dict = {}
     # TODO : Make sure that this directory name is correct when
     #   moving from debugging to actually working
     with open("../isa/"+isa+".isa", 'r') as data_file:
         data = csv.DictReader(data_file, delimiter=',')
         for row in data:
-            item = test_dict.get(row["Insn"], dict()) # Initialise the sub-directory
-            item["Type"] = row["Type"]
-            item["Ld"] = int(row["Ld"])
-            item["St"] = int(row["St"])
-
-            test_dict[row["Insn"]] = item
+            test_dict[row["Insn"]] = int(row["Ld"])
 
     return test_dict
 
@@ -39,14 +34,14 @@ def check_isa(isa):
 
     # Determine base instruction set based on the XLEN
     if int(isa[2:4]) == 32:
-        all_instrs.update(convert_csv_to_dict("rv32"))
+        all_instrs.update(convert_csv_to_dict_ld_only("rv32"))
     else:
         # No file yet made for this condition
-        all_instrs.update(convert_csv_to_dict("rv64"))
+        all_instrs.update(convert_csv_to_dict_ld_only("rv64"))
     
     # Include relevant instructions based on the remaining instructions
     for index in range(5, len(isa)):
-        all_instrs.update(convert_csv_to_dict(isa[index]))
+        all_instrs.update(convert_csv_to_dict_ld_only(isa[index]))
     # TODO : Consider extensions such as the bit manip ones which won't be 
     #   represented by just single characters; also need to consider
     #   CSV files which are combinations of extensions
@@ -59,8 +54,8 @@ def count_loads(all_instrs):
         words = line.split()
         insn_name = words[1]
 
-        if insn_name in all_instrs and all_instrs[insn_name]['Type'] == 'load':
-            print(all_instrs[insn_name]['Ld'])
+        if insn_name in all_instrs:
+            print(all_instrs[insn_name])
         else:
             print(0)
 
