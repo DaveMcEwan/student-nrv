@@ -1,0 +1,9 @@
+Insn,Type,Ld,St
+lw,load,4,0
+lh,load,2,0
+lhu,load,2,0
+lb,load,1,0
+lbu,load,1,0
+sw,store,0,4
+sh,store,0,2
+sb,store,0,1
