@@ -4,8 +4,8 @@
 # Prepares the byte stream to then be used in the display script
 
 # Example to guide use:
-# Run the command : python3 load_bw/load_bw.py --isa=rv32ic < example.trc
-#   while in the scripts directory
+# Run the command : python3 scripts/load_bw/load_bw.py --isa=rv32ic < scripts/example.trc
+#   while in the base directory
 
 import sys
 import argparse
@@ -19,9 +19,7 @@ args = parser.parse_args() # ISA argument stored in args.isa
 # Function to take in a CSV file and convert it into the desired dictionary format
 def convert_csv_to_dict_ld_only(isa):
     test_dict = {}
-    # TODO : Make sure that this directory name is correct when
-    #   moving from debugging to actually working
-    with open("../isa/"+isa+".isa", 'r') as data_file:
+    with open("isa/"+isa+".isa", 'r') as data_file:
         data = csv.DictReader(data_file, delimiter=',')
         for row in data:
             test_dict[row["Insn"]] = int(row["Ld"])
