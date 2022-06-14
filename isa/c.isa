@@ -1,24 +1,39 @@
-Insn,Type,Ld,St
-c.lwsp,load,4,0
-c.ldsp,load,8,0
-c.lqsp,load,16,0
-c.flwsp,load,4,0
-c.fldsp,load,8,0
+# All instructions belonging to the C extension for RISC-V
 
-c.lw,load,4,0
-c.ld,load,8,0
-c.lq,load,16,0
-c.flw,load,4,0
-c.fld,load,8,0
+Insn,       Type,   Ld, St
 
-c.swsp,store,0,4
-c.sdsp,store,0,8
-c.sqsp,store,0,16
-c.fswsp,store,0,8
-c.fsdsp,store,0,16
+# Stack-Pointer-Based Loads
+c.lwsp,     load,   4,  0
+c.ldsp,     load,   8,  0
+c.lqsp,     load,   16, 0
+c.flwsp,    load,   4,  0
+c.fldsp,    load,   8,  0
 
-c.sw,store,0,4
-c.sd,store,0,8
-c.sq,store,0,16
-c.fsw,store,0,4
-c.fsd,store,0,8
+# Stack-Pointer-Based Stores
+c.swsp,     store,  0,  4
+c.sdsp,     store,  0,  8
+c.sqsp,     store,  0,  16
+c.fswsp,    store,  0,  8
+c.fsdsp,    store,  0,  16
+
+# Register-Based Loads
+c.lw,       load,   4,  0
+c.ld,       load,   8,  0
+c.lq,       load,   16, 0
+c.flw,      load,   4,  0
+c.fld,      load,   8,  0
+
+# Register-Based Stores
+c.sw,       store,  0,  4
+c.sd,       store,  0,  8
+c.sq,       store,  0,  16
+c.fsw,      store,  0,  4
+c.fsd,      store,  0,  8
+
+# Control Transfer instructions
+c.j,        branch, 0,  0
+c.jal       branch, 0,  0
+c.jr        branch, 0,  0
+c.jalr      branch, 0,  0
+c.beqz      branch, 0,  0
+c.bnez      branch, 0,  0

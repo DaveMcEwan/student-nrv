@@ -25,7 +25,7 @@ args = parser.parse_args() # ISA argument stored in args.isa
 def convert_csv_to_dict_st_only(isa):
     test_dict = {}
     with open("isa/"+isa+".isa", 'r') as data_file:
-        data = csv.DictReader(data_file, delimiter=',')
+        data = csv.DictReader(filter(lambda row: row[0]!='#', data_file), skipinitialspace=True, delimiter=',')
         for row in data:
             test_dict[row["Insn"]] = int(row["St"])
 
