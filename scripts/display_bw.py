@@ -1,5 +1,10 @@
 import sys
+import argparse
 import matplotlib.pyplot as plt
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--img", help="Save path for the png figure")
+args = parser.parse_args() # File path stored in args.img
 
 def moving_average(window_size):
     avg_stream = []
@@ -19,7 +24,7 @@ def display_graph(avg_stream):
     plt.title('Moving Average output')
     plt.xlabel('Line Number')
     plt.ylabel('Bytes transferred')
-    plt.savefig("test.png")
+    plt.savefig(args.img)
 
 def main():
     n = 128
