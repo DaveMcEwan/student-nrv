@@ -3,9 +3,14 @@
 #   on the corresponding line
 # Prepares the byte stream to then be used in the display script
 
+# Input : Trimmed down instruction trace
+# Output : Store byte stream (to then be passed through a moving average filter)
+# --isa flag : Determines the instructions we expect to see in the program; same as
+#   the --isa flag in Spike
+
 # Example to guide use:
-# Run the command : python3 store_bw/store_bw.py --isa=rv32ic < example.trc
-#   while in the scripts directory
+# Run the command : python3 scripts/store_bw/store_bw.py --isa=rv32ic < scripts/example.trc
+#   while in the base directory
 
 import sys
 import argparse

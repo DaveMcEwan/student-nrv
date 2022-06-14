@@ -3,6 +3,11 @@
 #   on the corresponding line
 # Prepares the byte stream to then be used in the display script
 
+# Input : Trimmed down instruction trace
+# Output : Load byte stream (to then be passed through a moving average filter)
+# --isa flag : Determines the instructions we expect to see in the program; same as
+#   the --isa flag in Spike
+
 # Example to guide use:
 # Run the command : python3 scripts/load_bw/load_bw.py --isa=rv32ic < scripts/example.trc
 #   while in the base directory
