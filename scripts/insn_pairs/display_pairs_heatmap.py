@@ -1,17 +1,15 @@
 # Parse the insn_pairs.py script output
-# Visualise the most frequent pairs and plot in the form of a bar graph
+# Visualise the most frequent pairs and plot in the form of a heatmap
 
 # Input : Instruction pair histogram, output from insn_pairs.py
 # Output : Heatmap figure
 
-from pyexpat.errors import XML_ERROR_ATTRIBUTE_EXTERNAL_ENTITY_REF
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-# Function to parse the instruction pairs and their counters into a format
-#   that can be plotted into a bar chart easily
+# Function to parse the instruction pairs and their counters
 def parse_pairs_heatmap(pairs_histogram, size):
     all_pairs = {}
     # Getting 5 unique leading and following instructions for the axes
@@ -74,7 +72,7 @@ def plot_heatmap(arr, y_labels, x_labels):
     plt.show()
 
 def main():
-    # Read in the stdin and store in the instr_trace variable
+    # Read in the stdin and store in the pairs_histogram variable
     pairs_histogram = sys.stdin.readlines()
     arr, x_labels, y_labels = parse_pairs_heatmap(pairs_histogram, 16)
     plot_heatmap(arr, x_labels, y_labels)

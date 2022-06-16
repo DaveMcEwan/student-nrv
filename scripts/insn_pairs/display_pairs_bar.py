@@ -20,14 +20,13 @@ def parse_pairs_bar(pairs_histogram, n):
     return popular_pairs
 
 def plot_bar(popular_pairs):
-    print(popular_pairs.keys())
     plt.bar(range(len(popular_pairs)), list(popular_pairs.values()))
     plt.xticks(range(len(popular_pairs)), list(popular_pairs.keys()))
     plt.xticks(rotation=45)
     plt.show()
 
 def main():
-    # Read in the stdin and store in the instr_trace variable
+    # Read in the stdin and store in the pairs_histogram variable
     pairs_histogram = sys.stdin.readlines()
     plot_bar(parse_pairs_bar(pairs_histogram, 20))
 
