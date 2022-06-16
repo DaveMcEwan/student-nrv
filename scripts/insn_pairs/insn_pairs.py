@@ -6,11 +6,10 @@
 #   detailing how often they've appeared
 
 # Example to guide use:
-# Run the command : python3 scripts/insn_pairs/insn_pairs.py --isa=rv32ic < scripts/example.trc
+# Run the command : python3 scripts/insn_pairs/insn_pairs.py < scripts/example.trc
 #   while in the base directory
 
 import sys
-
 
 #   Iterate through the instruction stream and calculate the most frequent instruction pairs
 def track_pairs(instr_trace):
