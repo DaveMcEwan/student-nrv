@@ -4482,4 +4482,3 @@
 4
 0
 0
-Number of load instructions : 1269
