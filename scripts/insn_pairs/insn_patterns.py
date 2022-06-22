@@ -13,6 +13,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import diff
+from operator import itemgetter
 
 #   Iterate through the instruction stream and calculate the most frequent
 #       instruction patterns of size n
@@ -41,36 +42,20 @@ def track_patterns(instr_trace, n):
         else:
             patterns_dict[tuple(window)] += 1
     
-    # Sort based on the corresponding counter values
-    # sorted_pairs = sorted(patterns_dict.items(), key=lambda x: x[1], reverse=True)
-
     return patterns_dict
-    # Returns a list of tuples where each instruction pattern is associated with their counter
+    # Returns a list of tuples where each instruction pattern is associated with 
+    #   their counter
 
-# Takes in the LIST of tuples and prints out the pairs and counters in a readable way
-def print_pairs(sorted_pairs):
-    for pair in sorted_pairs:
-        print_template = ""
-        for insn in range(len(pair[0])):
-            print_template += pair[0][insn] + ", "
-        print(f'{print_template:<64} {str(pair[1])}')
-
-
-def main():
-    # Read in the stdin and store in the instr_trace variable
-    instr_trace = sys.stdin.readlines()
-    all_patterns_dict = {}
-
-    for i in range(3, 8):
-        all_patterns_dict.update(track_patterns(instr_trace, i))
-
+# Function that takes in the dictionary of all patterns and locates the local maxima
+#   by filtering patterns that don't occur frequently, sorting the dictionary
+#   and then differentiating with respect to 1. Any differentiated values above 
+#   a threshold are then used to indicate which indices to select as the most frequent
+#   patterns from the overall dictionary.
+# Returns a list of tuples containing the most frequent patterns and their counters
+def local_maxima(all_patterns_dict, plot):
     # List comprehension to filter out patterns smaller than a certain counter value
     filtered_patterns = {k:r for k, r in all_patterns_dict.items() if r > 5}
     sorted_patterns = dict(sorted(filtered_patterns.items(), key=lambda x: x[1], reverse=True))
-    # print_pairs(sorted_patterns)
-
-    # Plot the sorted list
-    plt.bar(range(len(sorted_patterns)), list(dict(sorted_patterns).values()))
 
     # Differentiate the sorted dictionary values
     dy = np.append(abs(diff(list(sorted_patterns.values()))/1), 0)
@@ -84,14 +69,40 @@ def main():
     #   is definitely part of the list
     maximum_indices = np.insert(maximum_indices, 0, True)
 
-    # Also plot these indexes on the same graph to see how the values align to
-    #   the instruction patterns
-    plt.bar(range(len(sorted_patterns)), maximum_indices)
-    plt.show()
-
-    # Grab the instruction patterns which the indices align with
+    # Grab the instruction tuples which the indices align with
     masked_values = np.array(list(sorted_patterns))[maximum_indices]
-    print("Most frequent patterns : " + str(masked_values))
+
+    # Optional bool to plot to therefore allow a user to visualise which local
+    #   maxima was selected - allows the user to verify that the local maxima was selected
+    if (plot):
+        # Plot the sorted list
+        plt.bar(range(len(sorted_patterns)), list(dict(sorted_patterns).values()))
+
+        # Also plot these indexes on the same graph to see how the values align to
+        #   the instruction patterns
+        plt.bar(range(len(sorted_patterns)), maximum_indices)
+        plt.show()
+
+    # Return the dictionary values (frequency counters) 
+    return {key:filtered_patterns.get(key) for key in masked_values}
+
+# Takes in a dictionary and prints out the pairs and counters in a readable way
+def print_pairs(sorted_pairs):
+    for k, v in sorted_pairs.items():
+        # Remove brackets and apostrophes
+        stripped_key = str(k)[1:-1].replace("'","")
+        # Print in a formaatted manner
+        print(f'{stripped_key:<64} {str(v)}')
+
+def main():
+    # Read in the stdin and store in the instr_trace variable
+    instr_trace = sys.stdin.readlines()
+    all_patterns_dict = {}
+
+    for i in range(3, 8):
+        all_patterns_dict.update(track_patterns(instr_trace, i))
+
+    print_pairs(local_maxima(all_patterns_dict, False))
 
 if __name__ == "__main__":
     main()
