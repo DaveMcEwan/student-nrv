@@ -12,6 +12,7 @@ default: disassembly
 default: histogram
 default: extract_main
 default: extract_instruction_names
+default: bw_streams
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -50,8 +51,10 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 	$(call R_FNAME)/nproc-$(call R_NPROC)/testcase.trc)
 
 # 	Form the other targets using string manipulation with the current target
-MAIN_TRACES 	  := $(subst testcase,main,${TRACES})
-MAIN_INSTRUCTIONS := $(subst testcase,instructions-only,${TRACES})
+MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
+MAIN_INSTRUCTIONS  := $(subst testcase,instructions-only,${TRACES})
+LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
+STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
 
 # Go up one directory - places us in the FNAME directory
 NPROC_DIRS 	:= $(dir ${TRACES})
@@ -205,6 +208,21 @@ extract_instruction_names: ${MAIN_INSTRUCTIONS}
 # 5 - Instruction
 ${BUILD_DIR}/%/instructions-only.trc: ${BUILD_DIR}/%/main.trc
 	cat $< | awk '{print $$3, $$5}' > $@
+
+.PHONY: bw_streams
+bw_streams: produce_load_bw produce_store_bw
+
+.PHONY: produce_load_bw
+produce_load_bw: ${LOAD_BYTE_STREAMS}
+
+${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/instructions-only.trc
+	python3 scripts/load_bw/load_bw.py --isa=$(ISA) < $< > $@
+
+.PHONY: produce_store_bw
+produce_store_bw: ${STORE_BYTE_STREAMS}
+
+${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/instructions-only.trc
+	python3 scripts/store_bw/store_bw.py --isa=$(ISA) < $< > $@
 
 #	Directory targets, create all needed directories in one
 NPROC_DIRS:

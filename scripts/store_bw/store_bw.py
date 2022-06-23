@@ -1,53 +1,71 @@
 # Analyse the instruction trace input through stdin
-# Output the number of bytes transferred per store instruction on the corresponding line
+# Output the number of bytes transferred per store instruction 
+#   on the corresponding line
 # Prepares the byte stream to then be used in the display script
+
+# Input : Trimmed down instruction trace
+# Output : Store byte stream (to then be passed through a moving average filter)
+# --isa flag : Determines the instructions we expect to see in the program; same as
+#   the --isa flag in Spike
+
+# Example to guide use:
+# Run the command : python3 scripts/store_bw/store_bw.py --isa=rv32ic < scripts/example.trc
+#   while in the base directory
+
 import sys
+import argparse
+import csv
 
-# TODO : Add code to include dictionaries and lists from the associated .isa file.
-#   Need a way of getting the configuration from the instruction trace - maybe
-#   by looking at the instruction trace's parent directories
+# Input argument parsing (to detect the ISA)
+parser = argparse.ArgumentParser()
+parser.add_argument("--isa", help="RISC-V ISA string")
+args = parser.parse_args() # ISA argument stored in args.isa
 
-# These are examples dictionaries that may be included from the .isa file
-base_loads = {  'sw': {'bytes': 4, 'cycles': 0}, 
-                'sh': {'bytes': 2, 'cycles': 0},
-                'sb': {'bytes': 1, 'cycles': 0},
-             }
+# Function to take in a CSV file and convert it into the desired dictionary format
+def convert_csv_to_dict_st_only(isa):
+    test_dict = {}
+    with open("isa/"+isa+".isa", 'r') as data_file:
+        data = csv.DictReader(filter(lambda row: row[0]!='#', data_file), skipinitialspace=True, delimiter=',')
+        for row in data:
+            test_dict[row["Insn"]] = int(row["St"])
 
-c_sp_loads = {  'c.swsp': {'bytes': 4, 'cycles': 0}, 
-                'c.sdsp': {'bytes': 8, 'cycles': 0},
-                'c.sqsp': {'bytes': 16, 'cycles': 0},
-                'c.fswsp': {'bytes': 8, 'cycles': 0},
-                'c.fsdsp': {'bytes': 16, 'cycles': 0},
-             }
+    return test_dict
 
-c_reg_loads = { 'c.sw': {'bytes': 4, 'cycles': 0}, 
-                'c.sd': {'bytes': 8, 'cycles': 0},
-                'c.sq': {'bytes': 16, 'cycles': 0},
-                'c.fsw': {'bytes': 4, 'cycles': 0},
-                'c.fsd': {'bytes': 8, 'cycles': 0},
-              }
+# Take in the input string detailing the ISA, parse it and grab the needed dictionaries
+def check_isa(isa):
+    all_instrs = {}
 
-# These will have to be automated in the combined .isa files
-loads_list = []
-loads_list.extend(base_loads.keys())
-loads_list.extend(c_sp_loads.keys()) 
-loads_list.extend(c_reg_loads.keys())
+    # Determine base instruction set based on the XLEN
+    if int(isa[2:4]) == 32:
+        all_instrs.update(convert_csv_to_dict_st_only("rv32"))
+    else:
+        # No file yet made for this condition
+        all_instrs.update(convert_csv_to_dict_st_only("rv64"))
+    
+    # Include relevant instructions based on the remaining instructions
+    for index in range(5, len(isa)):
+        all_instrs.update(convert_csv_to_dict_st_only(isa[index]))
+    # TODO : Consider extensions such as the bit manip ones which won't be 
+    #   represented by just single characters; also need to consider
+    #   CSV files which are combinations of extensions
 
-loads_dict = {}
-loads_dict.update(base_loads)
-loads_dict.update(c_sp_loads)
-loads_dict.update(c_reg_loads)
+    return all_instrs
 
-def count_loads():
+#   Iterate through the instruction stream and output the byte stream
+def count_stores(all_instrs):
     for line in sys.stdin:
         words = line.split()
-        if words[1] in loads_list:
-            print(loads_dict[words[1]]['bytes'])
+        insn_name = words[1]
+
+        if insn_name in all_instrs:
+            print(all_instrs[insn_name])
         else:
             print(0)
 
 def main():
-    count_loads()
+    all_instrs = {}
+    all_instrs = check_isa(args.isa)
+    count_stores(all_instrs)
 
 if __name__ == "__main__":
     main()
