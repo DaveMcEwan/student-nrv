@@ -52,7 +52,7 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 
 # 	Form the other targets using string manipulation with the current target
 MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
-MAIN_INSTRUCTIONS  := $(subst testcase,instructions-only,${TRACES})
+MAIN_INSTRUCTIONS  := $(subst testcase,cut-down-main,${TRACES})
 LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
 STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
 
@@ -204,10 +204,8 @@ ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 .PHONY: extract_instruction_names
 extract_instruction_names: ${MAIN_INSTRUCTIONS}
 
-# 3 - Instruction memory
-# 5 - Instruction
-${BUILD_DIR}/%/instructions-only.trc: ${BUILD_DIR}/%/main.trc
-	cat $< | awk '{print $$3, $$5}' > $@
+${BUILD_DIR}/%/cut-down-main.trc: ${BUILD_DIR}/%/main.trc
+	cat $< | awk '{split($$0,a,": "); print a[2]}' > $@
 
 .PHONY: bw_streams
 bw_streams: produce_load_bw produce_store_bw
@@ -215,14 +213,14 @@ bw_streams: produce_load_bw produce_store_bw
 .PHONY: produce_load_bw
 produce_load_bw: ${LOAD_BYTE_STREAMS}
 
-${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/instructions-only.trc
-	python3 scripts/load_bw/load_bw.py --isa=$(ISA) < $< > $@
+${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/cut-down-main.trc
+	python3 scripts/bandwidth/load_bw/load_bw.py --isa=$(ISA) < $< > $@
 
 .PHONY: produce_store_bw
 produce_store_bw: ${STORE_BYTE_STREAMS}
 
-${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/instructions-only.trc
-	python3 scripts/store_bw/store_bw.py --isa=$(ISA) < $< > $@
+${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/cut-down-main.trc
+	python3 scripts/bandwidth/store_bw/store_bw.py --isa=$(ISA) < $< > $@
 
 #	Directory targets, create all needed directories in one
 NPROC_DIRS:
