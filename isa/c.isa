@@ -1,5 +1,4 @@
 # All instructions belonging to the C extension for RISC-V
-
 Insn,       Type,   Ld, St
 
 # Stack-Pointer-Based Loads
