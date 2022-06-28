@@ -1,3 +1,4 @@
+# All instructions solely in the 32-bit instruction set for RISC-V
 Insn,   Type,   Ld, St
 
 lw,     load,   4,  0

@@ -43,12 +43,33 @@ def check_isa(isa):
         all_instrs.update(convert_csv_to_dict_st_only("rv64"))
     
     # Include relevant instructions based on the remaining instructions
-    for index in range(5, len(isa)):
-        all_instrs.update(convert_csv_to_dict_st_only(isa[index]))
-    # TODO : Consider extensions such as the bit manip ones which won't be 
-    #   represented by just single characters; also need to consider
-    #   CSV files which are combinations of extensions
+    # Dictionary to track what's been included
+    history = { 'm' : False,
+                'a' : False,
+                'f' : False,
+                'c' : False,
+                'p' : False,
+                'v' : False }
 
+    for index in range(5, len(isa)):
+        extension = isa[index].lower()
+        # Possible base extensions : MAFCPV
+        # Possible combinations : CD, CF (so far)
+        if (history[extension]): # Extension already detected, ignore
+            continue
+        else: # New extension, check for combinations
+            all_instrs.update(convert_csv_to_dict_st_only(isa[index]))
+            history[isa[index]] = True
+            if(extension == 'c'):
+                if(history['f']):
+                    all_instrs.update(convert_csv_to_dict_st_only('cf'))
+            elif(extension == 'f'):
+                if(history['c']):
+                    all_instrs.update(convert_csv_to_dict_st_only('cf'))
+        # Expand upon with more combinations as we make them
+
+    # TODO : Consider extensions such as the bit manip ones which won't be 
+    #   represented by just single characters.
     return all_instrs
 
 #   Iterate through the instruction stream and output the byte stream
