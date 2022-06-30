@@ -1,58 +1,58 @@
 # All instructions solely in the 32-bit instruction set for RISC-V
-Insn,   Type,   Reg_Type,   Ld, St
+Insn,   Type,   Format,   Ld, St
 
 # Loads
-lw,     load,   i_format,   4,  0
-lh,     load,   i_format,   2,  0
-lhu,    load,   i_format,   2,  0
-lb,     load,   i_format,   1,  0
-lbu,    load,   i_format,   1,  0
+lw,     load,   I,        4,  0
+lh,     load,   I,        2,  0
+lhu,    load,   I,        2,  0
+lb,     load,   I,        1,  0
+lbu,    load,   I,        1,  0
 
 # Stores
-sw,     store,  s_format,   0,  4
-sh,     store,  s_format,   0,  2
-sb,     store,  s_format,   0,  1
+sw,     store,  S,        0,  4
+sh,     store,  S,        0,  2
+sb,     store,  S,        0,  1
 
 # Shifts
-sll,    shift,  r_format,   0,  0
-slli,   shift,  i_format,   0,  0
-srl,    shift,  r_format,   0,  0
-srli,   shift,  i_format,   0,  0
-sra,    shift,  r_format,   0,  0
-srai,   shift,  i_format,   0,  0
+sll,    shift,  R,        0,  0
+slli,   shift,  I,        0,  0
+srl,    shift,  R,        0,  0
+srli,   shift,  I,        0,  0
+sra,    shift,  R,        0,  0
+srai,   shift,  I,        0,  0
 
 # Arithmetic
-add,    arith,  r_format,   0,  0
-addi,   arith,  i_format,   0,  0
-sub,    arith,  r_format,   0,  0
-lui,    arith,  u_format,   0,  0
-auipc,  arith,  u_format,   0,  0
+add,    arith,  R,        0,  0
+addi,   arith,  I,        0,  0
+sub,    arith,  R,        0,  0
+lui,    arith,  U,        0,  0
+auipc,  arith,  U,        0,  0
 
 # Logical
-xor,    logic,  r_format,   0,  0
-xori,   logic,  i_format,   0,  0
-or,     logic,  r_format,   0,  0
-ori,    logic,  i_format,   0,  0
-and,    logic,  r_format,   0,  0
-andi,   logic,  i_format,   0,  0
+xor,    logic,  R,        0,  0
+xori,   logic,  I,        0,  0
+or,     logic,  R,        0,  0
+ori,    logic,  I,        0,  0
+and,    logic,  R,        0,  0
+andi,   logic,  I,        0,  0
 
 # Compare
-slt,    cmpr,   r_format,   0,  0
-slti,   cmpr,   i_format,   0,  0
-sltu,   cmpr,   r_format,   0,  0
-sltiu,  cmpr,   i_format,   0,  0
+slt,    cmpr,   R,        0,  0
+slti,   cmpr,   I,        0,  0
+sltu,   cmpr,   R,        0,  0
+sltiu,  cmpr,   I,        0,  0
 
 # Branches
-beq,    branch, sb_format,  0,  0
-bne,    branch, sb_format,  0,  0
-blt,    branch, sb_format,  0,  0
-bge,    branch, sb_format,  0,  0
-bltu,   branch, sb_format,  0,  0
-bgeu,   branch, sb_format,  0,  0
+beq,    branch, SB,       0,  0
+bne,    branch, SB,       0,  0
+blt,    branch, SB,       0,  0
+bge,    branch, SB,       0,  0
+bltu,   branch, SB,       0,  0
+bgeu,   branch, SB,       0,  0
 
 # Jump & Link
-jal,    jmpl,   uj_format,  0,  0
-jalr,   jmpl,   uj_format,  0,  0
+jal,    jmpl,   UJ,       0,  0
+jalr,   jmpl,   UJ,       0,  0
 
 # TODO : Determine how we're going to include the instructions
 #   from these sections
