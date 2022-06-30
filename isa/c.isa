@@ -1,38 +1,57 @@
 # All instructions belonging to the C extension for RISC-V
-Insn,       Type,   Ld, St
+Insn,       Type,   Reg_Type,       Ld, St
 
 # Stack-Pointer-Based Loads
-c.lwsp,     load,   4,  0
-c.ldsp,     load,   8,  0
-c.lqsp,     load,   16, 0
-c.flwsp,    load,   4,  0
-c.fldsp,    load,   8,  0
+c.lwsp,     load,   bracket_offset  4,  0
+c.ldsp,     load,   bracket_offset, 8,  0
+c.lqsp,     load,   bracket_offset, 16, 0
 
 # Stack-Pointer-Based Stores
-c.swsp,     store,  0,  4
-c.sdsp,     store,  0,  8
-c.sqsp,     store,  0,  16
-c.fswsp,    store,  0,  8
-c.fsdsp,    store,  0,  16
+c.swsp,     store,  bracket_offset, 0,  4
+c.sdsp,     store,  bracket_offset, 0,  8
+c.sqsp,     store,  bracket_offset, 0,  16
 
 # Register-Based Loads
-c.lw,       load,   4,  0
-c.ld,       load,   8,  0
-c.lq,       load,   16, 0
-c.flw,      load,   4,  0
-c.fld,      load,   8,  0
+c.lw,       load,   bracket_offset, 4,  0
+c.ld,       load,   bracket_offset, 8,  0
+c.lq,       load,   bracket_offset, 16, 0
 
 # Register-Based Stores
-c.sw,       store,  0,  4
-c.sd,       store,  0,  8
-c.sq,       store,  0,  16
-c.fsw,      store,  0,  4
-c.fsd,      store,  0,  8
+c.sw,       store,  bracket_offset, 0,  4
+c.sd,       store,  bracket_offset, 0,  8
+c.sq,       store,  bracket_offset, 0,  16
 
 # Control Transfer instructions
-c.j,        branch, 0,  0
-c.jal       branch, 0,  0
-c.jr        branch, 0,  0
-c.jalr      branch, 0,  0
-c.beqz      branch, 0,  0
-c.bnez      branch, 0,  0
+c.j,        branch, reg_offset,        0,  0
+c.jal       branch, reg_offset,        0,  0
+c.jr        branch, one_reg,        0,  0
+c.jalr      branch, one_reg,        0,  0
+c.beqz      branch, one_reg_branch, 0,  0
+c.bnez      branch, one_reg_branch, 0,  0
+
+# Integer Computational Instructions
+#   Integer Constant-Generation Instructions
+c.li,       comp,   reg_imm,       0,  0
+c.lui,      comp,   reg_imm,       0,  0
+
+#   Integer Register-Immediate Operations
+c.addi,     comp,   reg_offset,        0,  0
+c.addiw,    comp,   ,                  0,  0
+c.addi16sp, comp,   reg_offset,        0,  0
+c.addi4spn, comp,   rd_rs_imm,         0,  0
+c.slli,     comp,   reg_offset,        0,  0
+c.srli,     comp,   reg_offset,        0,  0
+c.srai,     comp,   reg_offset,        0,  0
+
+#   Integer Register-Register Operations
+c.mv,       comp,   two_regs,           0,  0
+c.add,      comp,   two_regs,           0,  0
+c.and,      comp,   two_regs,           0,  0
+c.or,       comp,   two_regs,           0,  0
+c.xor,      comp,   two_regs,           0,  0
+c.sub,      comp,   two_regs,           0,  0
+c.addw,     comp,   two_regs,           0,  0
+c.subw,     comp,   two_regs,           0,  0
+
+c.nop,      comp,   none,               0,  0
+c.ebreak,   comp,   none,               0,  0
