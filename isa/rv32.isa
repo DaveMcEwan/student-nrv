@@ -1,12 +1,12 @@
 # All instructions solely in the 32-bit instruction set for RISC-V
-Insn,   Type,   Ld, St
+Insn,   Type,   Reg_Type,       Ld, St
 
-lw,     load,   4,  0
-lh,     load,   2,  0
-lhu,    load,   2,  0
-lb,     load,   1,  0
-lbu,    load,   1,  0
+lw,     load,   bracket_offset, 4,  0
+lh,     load,   bracket_offset, 2,  0
+lhu,    load,   bracket_offset, 2,  0
+lb,     load,   bracket_offset, 1,  0
+lbu,    load,   bracket_offset, 1,  0
 
-sw,     store,  0,  4
-sh,     store,  0,  2
-sb,     store,  0,  1
+sw,     store,  bracket_offset, 0,  4
+sh,     store,  bracket_offset, 0,  2
+sb,     store,  bracket_offset, 0,  1
