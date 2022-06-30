@@ -76,12 +76,12 @@ def track_regs(instr_trace, all_instrs):
         # Check for instruction in overall dictionary
         if insn_name in all_instrs:
             # Check what the register operand format is and assign variables accordingly
-            if all_instrs[insn_name] == "r_format":
+            if all_instrs[insn_name] == "R":
                 # rd, rs1, rs2
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 append_to_counter_dict(rs_dict, line_list[4][:-1])
                 append_to_counter_dict(rs_dict, line_list[5])
-            elif all_instrs[insn_name] == "i_format":
+            elif all_instrs[insn_name] == "I":
                 # rd, imm(rs)
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 # Parse the second part of the assembly register format
@@ -89,23 +89,71 @@ def track_regs(instr_trace, all_instrs):
                 # Not converting immediates to ints as we may get immediates as hex values
                 append_to_counter_dict(imm_dict, remaining_string[0])
                 append_to_counter_dict(rs_dict, remaining_string[1])
-            elif all_instrs[insn_name] == "s_format":
+            elif all_instrs[insn_name] == "S":
                 # rs1, imm(rs2)
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                 append_to_counter_dict(imm_dict, remaining_string[0])
                 append_to_counter_dict(rs_dict, remaining_string[1])
-            elif all_instrs[insn_name] == "u_format":
+            elif all_instrs[insn_name] == "U":
                 # rd, imm
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 append_to_counter_dict(imm_dict, line_list[4])
-            elif all_instrs[insn_name] == "sb_format":
+            elif all_instrs[insn_name] == "SB":
                 # rs1, rs2, pc + imm
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
                 append_to_counter_dict(rs_dict, line_list[4][:-1])
                 append_to_counter_dict(imm_dict, line_list[7])
-            elif all_instrs[insn_name] == "uj_format":
+            elif all_instrs[insn_name] == "UJ":
                 # pc + imm
+                append_to_counter_dict(rd_dict, "ra") # Return Address register
+                append_to_counter_dict(imm_dict, line_list[4]+line_list[5])
+            elif all_instrs[insn_name] == "CR":     # Compressed formats
+                # rs/d, rs
+                first_reg = line_list[3][:-1]
+                # Append to both rs and rd dictionaries since the first register
+                #   is both read from and written to
+                append_to_counter_dict(rs_dict, first_reg)
+                append_to_counter_dict(rd_dict, first_reg)
+                append_to_counter_dict(rs_dict, line_list[4])
+            elif all_instrs[insn_name] == "CI":
+                # rs/d, imm,
+                first_reg = line_list[3][:-1]
+                append_to_counter_dict(rs_dict, first_reg)
+                append_to_counter_dict(rd_dict, first_reg)
+                append_to_counter_dict(imm_dict, line_list[4])
+            elif all_instrs[insn_name] == "CSS":
+                # rs, imm(sp)
+                append_to_counter_dict(rs_dict, line_list[3][:-1])
+                append_to_counter_dict(imm_dict, line_list[4].split("(")[0])
+                append_to_counter_dict(rs_dict, "sp")
+            elif all_instrs[insn_name] == "CIW":
+                # rd, sp, imm
+                append_to_counter_dict(rd_dict, line_list[3][:-1])
+                append_to_counter_dict(rs_dict, "sp")
+                append_to_counter_dict(imm_dict, line_list[5])
+            elif all_instrs[insn_name] == "CL":
+                # rd, imm(rs) - can merge with  'I'
+                append_to_counter_dict(rd_dict, line_list[3][:-1])
+                remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
+                append_to_counter_dict(imm_dict, remaining_string[0])
+                append_to_counter_dict(rs_dict, remaining_string[1])
+            elif all_instrs[insn_name] == "CS":
+                # rs1, imm(rs2) - can merge with 'S'
+                append_to_counter_dict(rs_dict, line_list[3][:-1])
+                remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
+                append_to_counter_dict(imm_dict, remaining_string[0])
+                append_to_counter_dict(rs_dict, remaining_string[1])
+            elif all_instrs[insn_name] == "CA":
+                pass # TODO
+            elif all_instrs[insn_name] == "CB":
+                # rs, pc + imm
+                append_to_counter_dict(rs_dict, line_list[3][:-1])
+                append_to_counter_dict(imm_dict, line_list[6])
+            elif all_instrs[insn_name] == "CJ":
+                # pc + imm
+                # TODO : Add specific case for 'jumpl' instruction types where
+                #   the return address is added to the rd dictionary
                 append_to_counter_dict(rd_dict, "ra") # Return Address register
                 append_to_counter_dict(imm_dict, line_list[4]+line_list[5])
             else:
