@@ -24,6 +24,7 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 # Input argument parsing (to detect the ISA)
 parser = argparse.ArgumentParser()
 parser.add_argument("--isa", help="RISC-V ISA string")
+parser.add_argument("--filedump", help="Filepath/name for the dictionary files")
 args = parser.parse_args() # ISA argument stored in args.isa
 
 # Function to take in a CSV file and convert it into the desired dictionary format
@@ -316,6 +317,21 @@ def track_regs(instr_trace, all_instrs):
     print(sorted_shift)
     print("arith dict")
     print(sorted_arith)
+
+    with open('scripts/reg_accesses/test-rs.txt', 'w') as dump:
+        dump.write(json.dumps(sorted_rs))
+        dump.write('\n')
+        dump.write(json.dumps(sorted_rd))
+        dump.write('\n')
+        dump.write(json.dumps(sorted_imm))
+        dump.write('\n')
+        dump.write(json.dumps(sorted_offset))
+        dump.write('\n')
+        dump.write(json.dumps(sorted_branch_offset))
+        dump.write('\n')
+        dump.write(json.dumps(sorted_shift))
+        dump.write('\n')
+        dump.write(json.dumps(sorted_arith))
 
 def main():
     # Read in the stdin and store in the instr_trace variable
