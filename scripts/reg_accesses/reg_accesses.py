@@ -295,6 +295,7 @@ def track_regs(instr_trace, all_instrs):
             else:
                 pass # Do nothing if the column has nothing
     
+    # Sort the lists
     sorted_rs = sorted(rs_dict.items(), key=lambda x: x[1], reverse=True)
     sorted_rd = sorted(rd_dict.items(), key=lambda x: x[1], reverse=True)
     sorted_imm = sorted(imm_dict.items(), key=lambda x: x[1], reverse=True)
@@ -303,35 +304,34 @@ def track_regs(instr_trace, all_instrs):
     sorted_shift = sorted(shift_dict.items(), key=lambda x: x[1], reverse=True)
     sorted_arith = sorted(arith_dict.items(), key=lambda x: x[1], reverse=True)
 
-    print("rs")
-    print(sorted_rs)
-    print("rd")
-    print(sorted_rd)
-    print("imm")
-    print(sorted_imm)
-    print("offset_dict")
-    print(sorted_offset)
-    print("branch_offset")
-    print(sorted_branch_offset)
-    print("shift dict")
-    print(sorted_shift)
-    print("arith dict")
-    print(sorted_arith)
+    # Form the dictionary that will be passed onto the display script
+    result = {}
+    result["rs"] = sorted_rs
+    result["rd"] = sorted_rd
+    result["imm"] = sorted_imm
+    result["offset_dict"] = sorted_offset
+    result["branch_offset"] = sorted_branch_offset
+    result["shift_dict"] = sorted_shift
+    result["arith_dict"] = sorted_arith
 
     with open('scripts/reg_accesses/test-rs.txt', 'w') as dump:
-        dump.write(json.dumps(sorted_rs))
-        dump.write('\n')
-        dump.write(json.dumps(sorted_rd))
-        dump.write('\n')
-        dump.write(json.dumps(sorted_imm))
-        dump.write('\n')
-        dump.write(json.dumps(sorted_offset))
-        dump.write('\n')
-        dump.write(json.dumps(sorted_branch_offset))
-        dump.write('\n')
-        dump.write(json.dumps(sorted_shift))
-        dump.write('\n')
-        dump.write(json.dumps(sorted_arith))
+        dump.write(json.dumps(result))
+
+    # Formatted printing so that users can access the raw data
+    print("Most common source registers accessed: "
+            +', '.join('[{}: {}]'.format(*k) for k in sorted_rs))
+    print("Most common destination registers accessed: "
+            +', '.join('[{}: {}]'.format(*k) for k in sorted_rd))
+    print("Most common immediate values: "
+            +', '.join('[{}: {}]'.format(*k) for k in sorted_imm))
+    print("Most common address offsets: "
+            +', '.join('[{}: {}]'.format(*k) for k in sorted_offset))
+    print("Most common branch offsets: "
+            +', '.join('[{}: {}]'.format(*k) for k in sorted_branch_offset))
+    print("Most common shift sizes: "
+            +', '.join('[{}: {}]'.format(*k) for k in shift_dict))
+    print("Most common arithmetic immediates: "
+            +', '.join('[{}: {}]'.format(*k) for k in sorted_arith))
 
 def main():
     # Read in the stdin and store in the instr_trace variable
