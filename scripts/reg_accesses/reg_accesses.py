@@ -11,6 +11,14 @@
 import sys
 import argparse
 import csv
+import logging
+
+# Print debugging information
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+# Dont print debugging information
+# logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+# Example debug printing line
+# logging.debug("Test debugging")
 
 # Input argument parsing (to detect the ISA)
 parser = argparse.ArgumentParser()
@@ -86,22 +94,22 @@ def track_regs(instr_trace, all_instrs):
 
         # Check for instruction in overall dictionary
         if insn_name in all_instrs:
-            print()
-            print(str(counter) + ": " + str(line_list[2:]))
+            logging.debug("")
+            logging.debug(str(counter) + ": " + str(line_list[2:]))
             # Check what the register operand format is and assign variables accordingly
             insn_subdict = all_instrs[insn_name]
             if insn_subdict["Format"] == "R":
                 # rd, rs1, rs2
-                print("R Format")
+                logging.debug("R Format")
                 rd, rs1, rs2 = line_list[3:5]
-                print("rd="+rd, "rs1="+rs1, "rs2="+rs2)
+                logging.debug("rd="+rd+", rs1="+rs1+", rs2="+rs2)
 
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 append_to_counter_dict(rs_dict, line_list[4][:-1])
                 append_to_counter_dict(rs_dict, line_list[5])
             elif insn_subdict["Format"] == "I":
                 # rd, imm(rs)
-                print("I Format")
+                logging.debug("I Format")
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 # Parse the second part of the assembly register format
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
@@ -109,18 +117,18 @@ def track_regs(instr_trace, all_instrs):
                 append_to_counter_dict(imm_dict, remaining_string[0])
                 append_to_counter_dict(rs_dict, remaining_string[1])
 
-                print("rd="+line_list[3][:-1], "imm="+remaining_string[0], "rs="+remaining_string[1])
+                logging.debug("rd="+line_list[3][:-1]+", imm="+remaining_string[0]+", rs="+remaining_string[1])
                 # If this instruction is a shift instruction, increase it's corresponding 
                 #   counter in the shift dictionary
                 if (insn_subdict["Type"] == "shift"):
-                    print("Shift detected")
+                    logging.debug("Shift detected")
                     append_to_counter_dict(shift_dict, remaining_string[0])
                 elif(insn_subdict["Type"] == "load"):
-                    print("Load detected")
+                    logging.debug("Load detected")
                     append_to_counter_dict(offset_dict, remaining_string[0])
             elif insn_subdict["Format"] == "S":
                 # rs1, imm(rs2)
-                print("S Format")
+                logging.debug("S Format")
 
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
@@ -128,59 +136,59 @@ def track_regs(instr_trace, all_instrs):
                 append_to_counter_dict(offset_dict, remaining_string[0])
                 append_to_counter_dict(rs_dict, remaining_string[1])
 
-                print("rs1="+line_list[3][:-1], "imm/offset="+remaining_string[0], "rs2="+remaining_string[1])
+                logging.debug("rs1="+line_list[3][:-1]+", imm/offset="+remaining_string[0]+", rs2="+remaining_string[1])
             elif insn_subdict["Format"] == "U":
                 # rd, imm
-                print("U Format")
+                logging.debug("U Format")
 
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 append_to_counter_dict(imm_dict, line_list[4])
 
-                print("rd="+line_list[3][:-1], "imm="+line_list[4])
+                logging.debug("rd="+line_list[3][:-1]+", imm="+line_list[4])
             elif insn_subdict["Format"] == "SB":
                 # rs1, rs2, pc + imm
-                print("SB Format")
+                logging.debug("SB Format")
 
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
                 append_to_counter_dict(rs_dict, line_list[4][:-1])
                 append_to_counter_dict(imm_dict, line_list[6]+line_list[7])
                 append_to_counter_dict(branch_offset_dict, line_list[6]+line_list[7])
 
-                print("rs1="+line_list[3][:-1], "rs2="+line_list[4][:-1], "imm/branch offset="+line_list[6]+line_list[7])
+                logging.debug("rs1="+line_list[3][:-1]+ ", rs2="+line_list[4][:-1]+", imm/branch offset="+line_list[6]+line_list[7])
 
             elif insn_subdict["Format"] == "UJ":
                 # pc + imm
-                print("UJ Format")
+                logging.debug("UJ Format")
                 append_to_counter_dict(rd_dict, "ra") # Return Address register
                 append_to_counter_dict(imm_dict, line_list[4]+line_list[5])
                 append_to_counter_dict(branch_offset_dict, line_list[4]+line_list[5])
 
-                print("rd=ra", "imm/branch offset="+line_list[4]+line_list[5])
+                logging.debug("rd=ra, imm/branch offset="+line_list[4]+line_list[5])
 
             elif insn_subdict["Format"] == "CR":     # Compressed formats
                 # rs/d, rs
-                print("CR Format")
+                logging.debug("CR Format")
 
                 if(insn_name=="c.jr" or insn_name=="c.jalr"):
                     # rs
                     append_to_counter_dict(rs_dict, line_list[3])
-                    print("rs="+line_list[3])
+                    logging.debug("rs="+line_list[3])
                     continue
 
                 first_reg = line_list[3][:-1]
                 append_to_counter_dict(rd_dict, first_reg)
                 append_to_counter_dict(rs_dict, line_list[4])
 
-                print("rd="+first_reg, "rs="+line_list[4])
+                logging.debug("rd="+first_reg+", rs="+line_list[4])
 
                 # Cases where the destination register is also being read from
                 if(insn_name=="c.add" or insn_name=="c.addw" or insn_name=="c.sub"):
                     append_to_counter_dict(rs_dict, first_reg)
-                    print("rs="+first_reg)
+                    logging.debug("rs="+first_reg)
 
             elif insn_subdict["Format"] == "CI":
                 # rs/d, imm,
-                print("CI Format")
+                logging.debug("CI Format")
 
                 first_reg = line_list[3][:-1]
                 append_to_counter_dict(rd_dict, first_reg)
@@ -190,12 +198,12 @@ def track_regs(instr_trace, all_instrs):
                     remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                     append_to_counter_dict(imm_dict, remaining_string[0])
                     append_to_counter_dict(rs_dict, remaining_string[1])
-                    print("rd="+first_reg, "imm="+remaining_string[0], "rs="+remaining_string[1])
+                    logging.debug("rd="+first_reg + ", imm="+remaining_string[0] + ", rs="+remaining_string[1])
                     continue
 
                 append_to_counter_dict(imm_dict, line_list[4])
 
-                print("rd="+first_reg, "imm="+line_list[4])
+                logging.debug("rd="+first_reg+ ", imm="+line_list[4])
 
                 # Cases where the dest register is also read from
                 if(insn_name == "c.addi" or 
@@ -203,69 +211,69 @@ def track_regs(instr_trace, all_instrs):
                     insn_name == "c.addi16sp" or
                     insn_name == "c.slli"):
                     append_to_counter_dict(rs_dict, first_reg)
-                    print("rs="+first_reg)
+                    logging.debug("rs="+first_reg)
 
             elif insn_subdict["Format"] == "CSS":
                 # rs, imm(sp)
-                print("CSS Format")
+                logging.debug("CSS Format")
 
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
                 append_to_counter_dict(imm_dict, line_list[4].split("(")[0])
                 append_to_counter_dict(rs_dict, "sp")
         
-                print("rs1="+line_list[3][:-1], "imm="+line_list[4].split("(")[0], "rs2=sp")
+                logging.debug("rs1="+line_list[3][:-1]+", imm="+line_list[4].split("(")[0]+", rs2=sp")
 
             elif insn_subdict["Format"] == "CIW":
                 # rd, sp, imm
-                print("CIW Format")
+                logging.debug("CIW Format")
 
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 append_to_counter_dict(rs_dict, "sp")
                 append_to_counter_dict(imm_dict, line_list[5])
 
-                print("rd="+line_list[3][:-1], "rs=sp, ", "imm="+line_list[5])
+                logging.debug("rd="+line_list[3][:-1]+", rs=sp, "+", imm="+line_list[5])
 
             elif insn_subdict["Format"] == "CL":
                 # rd, imm(rs) - can merge with  'I'
-                print("CL Format")
+                logging.debug("CL Format")
 
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                 append_to_counter_dict(imm_dict, remaining_string[0])
                 append_to_counter_dict(rs_dict, remaining_string[1])
 
-                print("rd="+line_list[3][:-1], "imm="+remaining_string[0], "rs="+remaining_string[1])
+                logging.debug("rd="+line_list[3][:-1]+", imm="+remaining_string[0]+", rs="+remaining_string[1])
 
             elif insn_subdict["Format"] == "CS":
                 # rs1, imm(rs2) - can merge with 'S'
-                print("CS Format")
+                logging.debug("CS Format")
 
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                 append_to_counter_dict(imm_dict, remaining_string[0])
                 append_to_counter_dict(rs_dict, remaining_string[1])
             
-                print("rs1="+line_list[3][:-1], "imm="+remaining_string[0], "rs2="+remaining_string[1])
+                logging.debug("rs1="+line_list[3][:-1]+", imm="+remaining_string[0]+", rs2="+remaining_string[1])
 
             elif insn_subdict["Format"] == "CA":
                 pass # TODO
             elif insn_subdict["Format"] == "CB":
                 # rs, pc + imm
-                print("CB Format")
+                logging.debug("CB Format")
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
                 append_to_counter_dict(imm_dict, line_list[6])
 
-                print("rs="+line_list[3][:-1], "imm="+line_list[6])
+                logging.debug("rs="+line_list[3][:-1], "imm="+line_list[6])
             elif insn_subdict["Format"] == "CJ":
                 # pc + imm
-                print("CJ Format")
+                logging.debug("CJ Format")
                 # TODO : Add specific case for 'jumpl' instruction types where
                 #   the return address is added to the rd dictionary
                 if(insn_name=="c.jal"):
                     append_to_counter_dict(rd_dict, "ra") # Return Address register
                 append_to_counter_dict(imm_dict, line_list[4]+line_list[5])
 
-                print("rd=ra", "imm="+line_list[4]+line_list[5])
+                logging.debug("rd=ra"+", imm="+line_list[4]+line_list[5])
             else:
                 pass # Do nothing if the column has nothing
     
