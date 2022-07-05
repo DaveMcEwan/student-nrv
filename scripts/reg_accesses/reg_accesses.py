@@ -12,11 +12,12 @@ import sys
 import argparse
 import csv
 import logging
+import json
 
 # Print debugging information
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+# logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 # Dont print debugging information
-# logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 # Example debug printing line
 # logging.debug("Test debugging")
 
@@ -84,6 +85,8 @@ def track_regs(instr_trace, all_instrs):
     branch_offset_dict = {}
     # Dictionary storing the shift sizes
     shift_dict = {}
+    # Dictionary storing the values used for arithmetic
+    arith_dict = {}
 
     counter = 0
     # Parse lines on stdin
@@ -126,6 +129,9 @@ def track_regs(instr_trace, all_instrs):
                 elif(insn_subdict["Type"] == "load"):
                     logging.debug("Load detected")
                     append_to_counter_dict(offset_dict, remaining_string[0])
+                elif(insn_subdict["Type"] == "arith"):
+                    logging.debug("Arithmetic detected")
+                    append_to_counter_dict(arith_dict, remaining_string[0])
             elif insn_subdict["Format"] == "S":
                 # rs1, imm(rs2)
                 logging.debug("S Format")
@@ -145,6 +151,11 @@ def track_regs(instr_trace, all_instrs):
                 append_to_counter_dict(imm_dict, line_list[4])
 
                 logging.debug("rd="+line_list[3][:-1]+", imm="+line_list[4])
+
+                if(insn_subdict["Type"] == "arith"):
+                    logging.debug("Arithmetic detected")
+                    append_to_counter_dict(arith_dict, line_list[4])
+                
             elif insn_subdict["Format"] == "SB":
                 # rs1, rs2, pc + imm
                 logging.debug("SB Format")
@@ -193,23 +204,25 @@ def track_regs(instr_trace, all_instrs):
                 first_reg = line_list[3][:-1]
                 append_to_counter_dict(rd_dict, first_reg)
 
-                if(insn_name=="c.lwsp" or insn_name=="c.ldsp" or insn_name=="c.lqsp"):
+                if(insn_subdict["Type"] == "load"):
                     # rd, imm(rs)
                     remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                     append_to_counter_dict(imm_dict, remaining_string[0])
+                    append_to_counter_dict(offset_dict, remaining_string[0])
                     append_to_counter_dict(rs_dict, remaining_string[1])
                     logging.debug("rd="+first_reg + ", imm="+remaining_string[0] + ", rs="+remaining_string[1])
                     continue
+                elif(insn_subdict["Type"] == "arith"):
+                    logging.debug("Arithmetic detected")
+                    append_to_counter_dict(arith_dict, line_list[4])
 
                 append_to_counter_dict(imm_dict, line_list[4])
 
                 logging.debug("rd="+first_reg+ ", imm="+line_list[4])
 
                 # Cases where the dest register is also read from
-                if(insn_name == "c.addi" or 
-                    insn_name == "c.addiw" or 
-                    insn_name == "c.addi16sp" or
-                    insn_name == "c.slli"):
+                if(insn_name == "c.addi" or insn_name == "c.addiw" or 
+                    insn_name == "c.addi16sp" or insn_name == "c.slli"):
                     append_to_counter_dict(rs_dict, first_reg)
                     logging.debug("rs="+first_reg)
 
@@ -218,10 +231,13 @@ def track_regs(instr_trace, all_instrs):
                 logging.debug("CSS Format")
 
                 append_to_counter_dict(rs_dict, line_list[3][:-1])
-                append_to_counter_dict(imm_dict, line_list[4].split("(")[0])
+
+                offset = line_list[4].split("(")[0]
+                append_to_counter_dict(imm_dict, offset)
+                append_to_counter_dict(offset_dict, offset)
                 append_to_counter_dict(rs_dict, "sp")
         
-                logging.debug("rs1="+line_list[3][:-1]+", imm="+line_list[4].split("(")[0]+", rs2=sp")
+                logging.debug("rs1="+line_list[3][:-1]+", imm/offset="+line_list[4].split("(")[0]+", rs2=sp")
 
             elif insn_subdict["Format"] == "CIW":
                 # rd, sp, imm
@@ -230,8 +246,9 @@ def track_regs(instr_trace, all_instrs):
                 append_to_counter_dict(rd_dict, line_list[3][:-1])
                 append_to_counter_dict(rs_dict, "sp")
                 append_to_counter_dict(imm_dict, line_list[5])
+                append_to_counter_dict(arith_dict, line_list[5])
 
-                logging.debug("rd="+line_list[3][:-1]+", rs=sp, "+", imm="+line_list[5])
+                logging.debug("rd="+line_list[3][:-1]+", rs=sp, "+", imm/arith="+line_list[5])
 
             elif insn_subdict["Format"] == "CL":
                 # rd, imm(rs) - can merge with  'I'
@@ -277,19 +294,28 @@ def track_regs(instr_trace, all_instrs):
             else:
                 pass # Do nothing if the column has nothing
     
+    sorted_rs = sorted(rs_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_rd = sorted(rd_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_imm = sorted(imm_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_offset = sorted(offset_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_branch_offset = sorted(branch_offset_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_shift = sorted(shift_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_arith = sorted(arith_dict.items(), key=lambda x: x[1], reverse=True)
 
     print("rs")
-    print(rs_dict)
+    print(sorted_rs)
     print("rd")
-    print(rd_dict)
+    print(sorted_rd)
     print("imm")
-    print(imm_dict)
+    print(sorted_imm)
     print("offset_dict")
-    print(offset_dict)
+    print(sorted_offset)
     print("branch_offset")
-    print(branch_offset_dict)
+    print(sorted_branch_offset)
     print("shift dict")
-    print(shift_dict)
+    print(sorted_shift)
+    print("arith dict")
+    print(sorted_arith)
 
 def main():
     # Read in the stdin and store in the instr_trace variable
