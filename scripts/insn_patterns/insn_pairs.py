@@ -43,10 +43,10 @@ def track_patterns(instr_trace):
 #   Iterate through the instruction stream and calculate the most frequent instruction pairs
 def track_pairs(instr_trace):
     pairs_dict = {}
-    previous_instr = instr_trace[0].split()[1] # Set the first instruction first 
+    previous_instr = instr_trace[0].split()[2] # Set the first instruction first 
 
     for line in instr_trace[1:]:
-        insn_name = line.split()[1]
+        insn_name = line.split()[2]
 
         key_string = f'{previous_instr}, {insn_name}'
 

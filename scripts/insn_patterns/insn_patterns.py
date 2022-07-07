@@ -23,12 +23,12 @@ def track_patterns(instr_trace, n):
 
     # Set up the first window
     for i in range(n):
-        window[i] = instr_trace[i].split()[1]
+        window[i] = instr_trace[i].split()[2]
     patterns_dict[tuple(window)] = 1
 
     # Iterate through the rest of the instructions
     for line in instr_trace[n:]:
-        insn_name = line.split()[1]
+        insn_name = line.split()[2]
 
         # Push new instruction into the window and pop the element at the 0th index
         window.append(insn_name)
