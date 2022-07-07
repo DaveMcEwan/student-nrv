@@ -2,7 +2,8 @@
 # Measure how frequently specific registers are accessed
 
 # Input : Trimmed down instruction trace
-# Output : TODO
+# Output : - JSON file containing the lists and dictionaries needed to make the display graphs from
+#          - Formatted lists containing the counters associated with each register
 
 # Example to guide use:
 # Run the command : python3 scripts/reg_accesses/reg_accesses.py < scripts/example.trc
@@ -133,7 +134,6 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                 # Not converting immediates to ints as we may get immediates as hex values
                 append_to_counter_dict(imm_dict, remaining_string[0])
-                # all_regs[remaining_string[0]]["imm"] += 1
                 # append_to_counter_dict(rs_dict, remaining_string[1])
                 all_regs[remaining_string[1]]["rs"] += 1
 
@@ -143,15 +143,12 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 if (insn_subdict["Type"] == "shift"):
                     logging.debug("Shift detected")
                     append_to_counter_dict(shift_dict, remaining_string[0])
-                    # all_regs[remaining_string[0]]["shift"] += 1
                 elif(insn_subdict["Type"] == "load"):
                     logging.debug("Load detected")
                     append_to_counter_dict(offset_dict, remaining_string[0])
-                    # all_regs[remaining_string[0]]["offset"] += 1
                 elif(insn_subdict["Type"] == "arith"):
                     logging.debug("Arithmetic detected")
                     append_to_counter_dict(arith_dict, remaining_string[0])
-                    # all_regs[remaining_string[0]]["arith"] += 1
             elif insn_subdict["Format"] == "S":
                 # rs1, imm(rs2)
                 logging.debug("S Format")
@@ -160,9 +157,7 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 all_regs[line_list[3][:-1]]["rs"] += 1
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                 append_to_counter_dict(imm_dict, remaining_string[0])
-                # all_regs[remaining_string[0]]["imm"] += 1
                 append_to_counter_dict(offset_dict, remaining_string[0])
-                # all_regs[remaining_string[0]]["offset"] += 1
                 # append_to_counter_dict(rs_dict, remaining_string[1])
                 all_regs[remaining_string[1]]["rs"] += 1
 
@@ -174,14 +169,12 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 # append_to_counter_dict(rd_dict, line_list[3][:-1])
                 all_regs[line_list[3][:-1]]["rd"] += 1
                 append_to_counter_dict(imm_dict, line_list[4])
-                # all_regs[line_list[4]]["imm"] += 1
 
                 logging.debug("rd="+line_list[3][:-1]+", imm="+line_list[4])
 
                 if(insn_subdict["Type"] == "arith"):
                     logging.debug("Arithmetic detected")
                     append_to_counter_dict(arith_dict, line_list[4])
-                    # all_regs[line_list[4]]["arith"] += 1
                 
             elif insn_subdict["Format"] == "SB":
                 # rs1, rs2, pc + imm
@@ -192,9 +185,7 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 # append_to_counter_dict(rs_dict, line_list[4][:-1])
                 all_regs[line_list[4][:-1]]["rs"] += 1
                 append_to_counter_dict(imm_dict, line_list[6]+line_list[7])
-                # all_regs[line_list[6]+line_list[7]]["imm"] += 1
                 append_to_counter_dict(branch_offset_dict, line_list[6]+line_list[7])
-                # all_regs[line_list[6]+line_list[7]]["branch_offset"] += 1
 
                 logging.debug("rs1="+line_list[3][:-1]+ ", rs2="+line_list[4][:-1]+", imm/branch offset="+line_list[6]+line_list[7])
 
@@ -204,9 +195,7 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 # append_to_counter_dict(rd_dict, "ra") # Return Address register
                 all_regs["ra"]["rd"] += 1
                 append_to_counter_dict(imm_dict, line_list[4]+line_list[5])
-                # all_regs[line_list[4]+line_list[5]]["imm"] += 1
                 append_to_counter_dict(branch_offset_dict, line_list[4]+line_list[5])
-                # all_regs[line_list[4]+line_list[5]]["branch_offset"] += 1
 
                 logging.debug("rd=ra, imm/branch offset="+line_list[4]+line_list[5])
 
@@ -247,9 +236,7 @@ def track_regs(instr_trace, all_instrs, all_regs):
                     # rd, imm(rs)
                     remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                     append_to_counter_dict(imm_dict, remaining_string[0])
-                    # all_regs[remaining_string[0]]["imm"] += 1
                     append_to_counter_dict(offset_dict, remaining_string[0])
-                    # all_regs[remaining_string[0]]["offset"] += 1
                     # append_to_counter_dict(rs_dict, remaining_string[1])
                     all_regs[remaining_string[1]]["rs"] += 1
                     logging.debug("rd="+first_reg + ", imm="+remaining_string[0] + ", rs="+remaining_string[1])
@@ -257,10 +244,8 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 elif(insn_subdict["Type"] == "arith"):
                     logging.debug("Arithmetic detected")
                     append_to_counter_dict(arith_dict, line_list[4])
-                    # all_regs[line_list[4]]["arith"] += 1
 
                 append_to_counter_dict(imm_dict, line_list[4])
-                # all_regs[line_list[4]]["imm"] += 1
 
                 logging.debug("rd="+first_reg+ ", imm="+line_list[4])
 
@@ -280,9 +265,7 @@ def track_regs(instr_trace, all_instrs, all_regs):
 
                 offset = line_list[4].split("(")[0]
                 append_to_counter_dict(imm_dict, offset)
-                # all_regs[offset]["imm"] += 1
                 append_to_counter_dict(offset_dict, offset)
-                # all_regs[offset]["offset_dict"] += 1
                 # append_to_counter_dict(rs_dict, "sp")
                 all_regs["sp"]["rs"] += 1
 
@@ -297,9 +280,7 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 # append_to_counter_dict(rs_dict, "sp")
                 all_regs["sp"]["rs"] += 1
                 append_to_counter_dict(imm_dict, line_list[5])
-                # all_regs[line_list[5]]["imm"] += 1
                 append_to_counter_dict(arith_dict, line_list[5])
-                # all_regs[line_list[5]]["arith"] += 1
 
                 logging.debug("rd="+line_list[3][:-1]+", rs=sp, "+", imm/arith="+line_list[5])
 
@@ -311,7 +292,6 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 all_regs[line_list[3][:-1]]["rd"] += 1
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                 append_to_counter_dict(imm_dict, remaining_string[0])
-                # all_regs[remaining_string[0]]["imm"] += 1
                 # append_to_counter_dict(rs_dict, remaining_string[1])
                 all_regs[remaining_string[1]]["rs"] += 1
 
@@ -325,7 +305,6 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 all_regs[line_list[3][:-1]]["rs"] += 1
                 remaining_string = line_list[4].replace("(", " ", 1)[:-1].split()
                 append_to_counter_dict(imm_dict, remaining_string[0])
-                # all_regs[remaining_string[0]]["imm"] += 1
                 # append_to_counter_dict(rs_dict, remaining_string[1])
                 all_regs[remaining_string[1]]["rs"] += 1
 
@@ -339,7 +318,6 @@ def track_regs(instr_trace, all_instrs, all_regs):
                 # append_to_counter_dict(rs_dict, line_list[3][:-1])
                 all_regs[line_list[3][:-1]]["rs"] += 1
                 append_to_counter_dict(imm_dict, line_list[6])
-                # all_regs[line_list[6]]["imm"] += 1
 
                 logging.debug("rs="+line_list[3][:-1], "imm="+line_list[6])
             elif insn_subdict["Format"] == "CJ":
@@ -351,7 +329,6 @@ def track_regs(instr_trace, all_instrs, all_regs):
                     # append_to_counter_dict(rd_dict, "ra") # Return Address register
                     all_regs["ra"]["rd"] += 1
                 append_to_counter_dict(imm_dict, line_list[4]+line_list[5])
-                # all_regs[line_list[4]+line_list[5]]["imm"] += 1
 
                 logging.debug("rd=ra"+", imm="+line_list[4]+line_list[5])
             else:
@@ -375,6 +352,7 @@ def track_regs(instr_trace, all_instrs, all_regs):
     result["branch_offset"] = sorted_branch_offset
     result["shift_dict"] = sorted_shift
     result["arith_dict"] = sorted_arith
+    result["all_regs"] = all_regs
 
     with open('scripts/reg_accesses/test-rs.txt', 'w') as dump:
         dump.write(json.dumps(result))
