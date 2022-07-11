@@ -21,7 +21,6 @@ args = parser.parse_args() # ISA argument stored in args.isa
 # https://www.geeksforgeeks.org/python-import-from-parent-directory/
 # Path adjusting to be able to append helper functions from scripts/
 import os
-from tabnanny import check
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -76,9 +75,6 @@ def append_to_counter_dict(dict, insn_name):
 # Iterate through instruction trace and count the most frequent register access pairs
 def track_rs_pairs(instr_trace, all_instrs):
     pairs_dict = {}
-
-    # rs1, rs2, _ = hlp.parse_instruction(instr_trace[0].split()[2:], all_instrs)
-
     # String variable forming the base which we'll make the keys from
     key_string = ""
 
@@ -111,6 +107,61 @@ def track_rs_pairs(instr_trace, all_instrs):
     sorted_pairs = sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
     return sorted_pairs
 
+def track_rd_pairs(instr_trace, all_instrs):
+    pairs_dict = {}
+    # String variable forming the base which we'll make the keys from
+    key_string = ""
+
+    for line in instr_trace:
+        _, _, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
+        # print(rd)
+        if rd:
+            if key_string:
+                key_string += rd
+                append_to_counter_dict(pairs_dict, key_string)
+                key_string = ""
+            else:
+                key_string += rd + ", "
+
+    return sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
+
+def track_rs_rd_pairs(instr_trace, all_instrs):
+    rs_dict = {}
+    rd_dict = {}
+    # String variable forming the base which we'll make the keys from
+    rs_string = ""
+    rd_string = ""
+
+    for line in instr_trace:
+        rs1, rs2, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
+        # print("rs1 :"+rs1+", rs2:"+rs2+", rd:"+rd)
+        if rs1:
+            if rs_string:
+                rs_string += rs1
+                append_to_counter_dict(rs_dict, rs_string)
+                rs_string = ""
+            else:
+                rs_string += rs1 + ", "
+            if rs2:
+                if rs_string:
+                    rs_string += rs2
+                    append_to_counter_dict(rs_dict, rs_string)
+                    rs_string = ""
+                else:
+                    rs_string += rs2 + ", "
+        if rd:
+            if rd_string:
+                rd_string += rd
+                append_to_counter_dict(rd_dict, rd_string)
+                rd_string = ""
+            else:
+                rd_string += rd + ", "
+
+    sorted_rs = sorted(rs_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_rd = sorted(rd_dict.items(), key=lambda x: x[1], reverse=True)
+
+    return sorted_rs, sorted_rd
+
 # Takes in the list of tuples and prints out the pairs and counters in a readable way
 def print_pairs(sorted_pairs):
     print("Printing pairs")
@@ -118,9 +169,19 @@ def print_pairs(sorted_pairs):
         print(f'{f"{pair[0]}":<32} {str(pair[1])}')
 
 def main():
+    all_instrs = check_isa(args.isa)
     # Read in the stdin and store in the instr_trace variable
     instr_trace = sys.stdin.readlines()
-    print_pairs(track_rs_pairs(instr_trace, check_isa(args.isa)))
+    # print("Most common RS pairs")
+    # print_pairs(track_rs_pairs(instr_trace, all_instrs))
+    # print("Most common RD pairs")
+    # print_pairs(track_rd_pairs(instr_trace, all_instrs))
+
+    rs_list, rd_list = track_rs_rd_pairs(instr_trace, all_instrs)
+    print("Most common RS pairs")
+    print_pairs(rs_list)
+    print("Most common RD pairs")
+    print_pairs(rd_list)
 
 if __name__ == "__main__":
     main()
