@@ -65,25 +65,62 @@ def check_isa(isa):
 
     return all_instrs
 
+# Helper function that checks if an item is in the input dictionary and increments
+#   if it is or creates a key if it doesn't exist
+def append_to_counter_dict(dict, insn_name):
+    if(insn_name in dict):
+        dict[insn_name] += 1
+    else:
+        dict[insn_name] = 1
+
 # Iterate through instruction trace and count the most frequent register access pairs
-# Register access type is determined by the string r_type
-def track_rs_pairs(instr_trace, r_type, all_instrs):
+def track_rs_pairs(instr_trace, all_instrs):
     pairs_dict = {}
 
-    rs1, rs2, _ = hlp.parse_instruction(instr_trace[0].split()[2:], all_instrs)
+    # rs1, rs2, _ = hlp.parse_instruction(instr_trace[0].split()[2:], all_instrs)
 
-    for line in instr_trace[1:]:
+    # String variable forming the base which we'll make the keys from
+    key_string = ""
+
+    for line in instr_trace:
         rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
-        if rs1:
-            pass
-        if rs2:
-            pass
+        # print("rs1 :"+rs1+", rs2:"+rs2)
 
+        if rs1: # Variable present in rs1, append to pairing
+            if key_string: # If the pair string already has a reg in it
+                key_string += rs1
+                # print("Adding single: "+rs1)
+                append_to_counter_dict(pairs_dict, key_string)
+                # print("Adding: "+key_string)
+                key_string = ""
+            else: # key_string is empty
+                # print("Starting with: "+rs1)
+                key_string += rs1 + ", "
+            if rs2: # Check if rs2 is present (only if rs1 is present)
+                if key_string:
+                    key_string += rs2
+                    # print("Adding single: "+rs2)
+                    append_to_counter_dict(pairs_dict, key_string)
+                    # print("Adding: "+key_string)
+                    key_string = ""
+                else:
+                    key_string += rs2 + ", "
+                    # print("Starting with: "+rs2)
+    
+    # Sort based on the corresponding counter values
+    sorted_pairs = sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
+    return sorted_pairs
+
+# Takes in the list of tuples and prints out the pairs and counters in a readable way
+def print_pairs(sorted_pairs):
+    print("Printing pairs")
+    for pair in sorted_pairs:
+        print(f'{f"{pair[0]}":<32} {str(pair[1])}')
 
 def main():
-    
     # Read in the stdin and store in the instr_trace variable
     instr_trace = sys.stdin.readlines()
+    print_pairs(track_rs_pairs(instr_trace, check_isa(args.isa)))
 
 if __name__ == "__main__":
     main()
