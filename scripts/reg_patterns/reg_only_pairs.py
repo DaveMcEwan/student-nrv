@@ -78,30 +78,40 @@ def track_rs_pairs(instr_trace, all_instrs):
     # String variable forming the base which we'll make the keys from
     key_string = ""
 
-    for line in instr_trace:
+    counter = 0
+    # Initialise key_string
+    while not key_string:
+        line = instr_trace[counter]
+        rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
+
+        if rs1:
+            key_string = rs1 + ", "
+            if rs2:
+                key_string += rs2
+                append_to_counter_dict(pairs_dict, key_string)
+                key_string = rs2 + ", "
+
+        counter += 1
+
+    # key_string is guaranteed to have a reg already in it now
+    for line in instr_trace[counter:]:
         rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
         # print("rs1 :"+rs1+", rs2:"+rs2)
 
         if rs1: # Variable present in rs1, append to pairing
-            if key_string: # If the pair string already has a reg in it
-                key_string += rs1
-                # print("Adding single: "+rs1)
+            # print("rs1: "+rs1)
+            key_string += rs1
+            # print("Adding single: "+rs1)
+            append_to_counter_dict(pairs_dict, key_string)
+            # print("Adding: "+key_string)
+            key_string = rs1+ ", "
+            if rs2: # Check if rs2 is present (only if rs1 is present)
+                # print("rs2: "+rs2)
+                key_string += rs2
+                # print("Adding single: "+rs2)
                 append_to_counter_dict(pairs_dict, key_string)
                 # print("Adding: "+key_string)
-                key_string = ""
-            else: # key_string is empty
-                # print("Starting with: "+rs1)
-                key_string += rs1 + ", "
-            if rs2: # Check if rs2 is present (only if rs1 is present)
-                if key_string:
-                    key_string += rs2
-                    # print("Adding single: "+rs2)
-                    append_to_counter_dict(pairs_dict, key_string)
-                    # print("Adding: "+key_string)
-                    key_string = ""
-                else:
-                    key_string += rs2 + ", "
-                    # print("Starting with: "+rs2)
+                key_string = rs2 + ", "
     
     # Sort based on the corresponding counter values
     sorted_pairs = sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
@@ -112,18 +122,28 @@ def track_rd_pairs(instr_trace, all_instrs):
     # String variable forming the base which we'll make the keys from
     key_string = ""
 
-    for line in instr_trace:
+    counter = 0
+    # Initialise key_string
+    while not key_string:
+        line = instr_trace[counter]
         _, _, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
-        # print(rd)
         if rd:
-            if key_string:
-                key_string += rd
-                append_to_counter_dict(pairs_dict, key_string)
-                key_string = ""
-            else:
-                key_string += rd + ", "
+            # print(rd)
+            key_string += rd + ", "
+        counter += 1
 
-    return sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
+    # key_string is guaranteed to have a reg already in it now
+    for line in instr_trace[counter:]:
+        _, _, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
+        if rd:
+            # print(rd)
+            key_string += rd
+            append_to_counter_dict(pairs_dict, key_string)
+            key_string = rd+ ", "
+    
+    # Sort based on the corresponding counter values
+    sorted_pairs = sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
+    return sorted_pairs
 
 def track_rs_rd_pairs(instr_trace, all_instrs):
     rs_dict = {}
@@ -132,35 +152,88 @@ def track_rs_rd_pairs(instr_trace, all_instrs):
     rs_string = ""
     rd_string = ""
 
-    for line in instr_trace:
+    counter = 0
+    # Initialise strings
+    while not rs_string and not rd_string:
+        line = instr_trace[counter]
         rs1, rs2, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
-        # print("rs1 :"+rs1+", rs2:"+rs2+", rd:"+rd)
+
         if rs1:
-            if rs_string:
+            if rs_string: # Already has a reg in it
                 rs_string += rs1
                 append_to_counter_dict(rs_dict, rs_string)
-                rs_string = ""
-            else:
-                rs_string += rs1 + ", "
-            if rs2:
-                if rs_string:
-                    rs_string += rs2
-                    append_to_counter_dict(rs_dict, rs_string)
-                    rs_string = ""
-                else:
-                    rs_string += rs2 + ", "
+            rs_string = rs1 + ", "
+
+            if rs2: # Guaranteed to already have a reg in rs_string beforehand
+                rs_string += rs2
+                append_to_counter_dict(rs_dict, rs_string)
+                rs_string = rs2 + ", "
+
         if rd:
-            if rd_string:
+            if rd_string: # Already has a reg
                 rd_string += rd
                 append_to_counter_dict(rd_dict, rd_string)
-                rd_string = ""
-            else:
-                rd_string += rd + ", "
+            rd_string = rd + ", "
+        counter += 1
+
+    for line in instr_trace[counter:]:
+        rs1, rs2, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
+        # print("rs1 :"+rs1+", rs2:"+rs2+", rd:"+rd)
+
+        # TODO : Fix the rs_string checking to match the individual functions
+        if rs1:
+            # print("rs1: "+rs1)
+            rs_string += rs1
+            append_to_counter_dict(rs_dict, rs_string)
+            rs_string = rs1 + ", "
+            if rs2:
+                # print("rs2: "+rs2)
+                rs_string += rs2
+                append_to_counter_dict(rs_dict, rs_string)
+                rs_string = rs2 + ", "
+
+        if rd:
+            # print("rd: "+rd)
+            rd_string += rd
+            append_to_counter_dict(rd_dict, rd_string)
+            rd_string = rd + ", "
 
     sorted_rs = sorted(rs_dict.items(), key=lambda x: x[1], reverse=True)
     sorted_rd = sorted(rd_dict.items(), key=lambda x: x[1], reverse=True)
 
     return sorted_rs, sorted_rd
+
+def track_rs_patterns(instr_trace, window_size, all_instrs):
+    rs_pattern_dict = {}
+    window = []
+
+    for line in instr_trace:
+        rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
+
+        if rs1:
+            # print("rs1: "+rs1)
+            if len(window) == window_size: # If the window has been filled
+                window.append(rs1)
+                window = window[1:]
+                append_to_counter_dict(rs_pattern_dict, tuple(window))
+            elif len(window) == window_size - 1: # Window is 1 away from being filled
+                window.append(rs1)
+                append_to_counter_dict(rs_pattern_dict, tuple(window))
+            else: # Window has not yet been filled
+                window.append(rs1)
+            if rs2:
+                # print("rs2: "+rs2)
+                if len(window) == window_size:
+                    window.append(rs2)
+                    window = window[1:]
+                    append_to_counter_dict(rs_pattern_dict, tuple(window))
+                elif len(window) == window_size - 1:
+                    window.append(rs2)
+                    append_to_counter_dict(rs_pattern_dict, tuple(window))
+                else:
+                    window.append(rs2)
+
+    return sorted(rs_pattern_dict.items(), key=lambda x: x[1], reverse=True)
 
 # Takes in the list of tuples and prints out the pairs and counters in a readable way
 def print_pairs(sorted_pairs):
@@ -178,10 +251,12 @@ def main():
     # print_pairs(track_rd_pairs(instr_trace, all_instrs))
 
     rs_list, rd_list = track_rs_rd_pairs(instr_trace, all_instrs)
-    print("Most common RS pairs")
-    print_pairs(rs_list)
-    print("Most common RD pairs")
-    print_pairs(rd_list)
+    # print("Most common RS pairs")
+    # print_pairs(rs_list)
+    # print("Most common RD pairs")
+    # print_pairs(rd_list)
+
+    print_pairs(track_rs_patterns(instr_trace, 5, all_instrs))
 
 if __name__ == "__main__":
     main()
