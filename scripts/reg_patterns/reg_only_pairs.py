@@ -180,7 +180,6 @@ def track_rs_rd_pairs(instr_trace, all_instrs):
         rs1, rs2, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
         # print("rs1 :"+rs1+", rs2:"+rs2+", rd:"+rd)
 
-        # TODO : Fix the rs_string checking to match the individual functions
         if rs1:
             # print("rs1: "+rs1)
             rs_string += rs1
@@ -207,33 +206,106 @@ def track_rs_patterns(instr_trace, window_size, all_instrs):
     rs_pattern_dict = {}
     window = []
 
-    for line in instr_trace:
+    counter = 0
+    # Initialise window
+    while len(window) != window_size:
+        line = instr_trace[counter]
         rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
 
         if rs1:
-            # print("rs1: "+rs1)
-            if len(window) == window_size: # If the window has been filled
-                window.append(rs1)
-                window = window[1:]
-                append_to_counter_dict(rs_pattern_dict, tuple(window))
-            elif len(window) == window_size - 1: # Window is 1 away from being filled
-                window.append(rs1)
-                append_to_counter_dict(rs_pattern_dict, tuple(window))
-            else: # Window has not yet been filled
-                window.append(rs1)
+            window.append(rs1)
             if rs2:
-                # print("rs2: "+rs2)
-                if len(window) == window_size:
+                if len(window) == window_size: # Full window
+                    append_to_counter_dict(rs_pattern_dict, tuple(window))
                     window.append(rs2)
                     window = window[1:]
                     append_to_counter_dict(rs_pattern_dict, tuple(window))
-                elif len(window) == window_size - 1:
+                else:
                     window.append(rs2)
+                    if len(window) == window_size:
+                        append_to_counter_dict(rs_pattern_dict, tuple(window))
+
+        counter += 1
+
+    for line in instr_trace[counter:]:
+        rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
+
+        if rs1:
+            window.append(rs1)
+            window = window[1:]
+            append_to_counter_dict(rs_pattern_dict, tuple(window))
+            if rs2:
+                window.append(rs2)
+                window = window[1:]
+                append_to_counter_dict(rs_pattern_dict, tuple(window))
+
+    return sorted(rs_pattern_dict.items(), key=lambda x: x[1], reverse=True)
+
+def track_rs_patterns(instr_trace, window_size, all_instrs):
+    rs_pattern_dict = {}
+    window = []
+
+    counter = 0
+    # Initialise window
+    while len(window) != window_size:
+        line = instr_trace[counter]
+        rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
+
+        if rs1:
+            window.append(rs1)
+            if rs2:
+                if len(window) == window_size: # Full window
+                    append_to_counter_dict(rs_pattern_dict, tuple(window))
+                    window.append(rs2)
+                    window = window[1:]
                     append_to_counter_dict(rs_pattern_dict, tuple(window))
                 else:
                     window.append(rs2)
+                    if len(window) == window_size:
+                        append_to_counter_dict(rs_pattern_dict, tuple(window))
+
+        counter += 1
+
+    for line in instr_trace[counter:]:
+        rs1, rs2, _ = hlp.parse_instruction(line.split()[2:], all_instrs)
+
+        if rs1:
+            window.append(rs1)
+            window = window[1:]
+            append_to_counter_dict(rs_pattern_dict, tuple(window))
+            if rs2:
+                window.append(rs2)
+                window = window[1:]
+                append_to_counter_dict(rs_pattern_dict, tuple(window))
 
     return sorted(rs_pattern_dict.items(), key=lambda x: x[1], reverse=True)
+
+def track_rd_patterns(instr_trace, window_size, all_instrs):
+    rd_pattern_dict = {}
+    window = []
+
+    counter = 0
+    # Initialise window
+    while len(window) != window_size:
+        line = instr_trace[counter]
+        _, _, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
+
+        if rd:
+            window.append(rd)
+            if len(window) == window_size: # Full window
+                append_to_counter_dict(rd_pattern_dict, tuple(window))
+
+        counter += 1
+
+    for line in instr_trace[counter:]:
+        _, _, rd = hlp.parse_instruction(line.split()[2:], all_instrs)
+
+        if rd:
+            window.append(rd)
+            window = window[1:]
+            append_to_counter_dict(rd_pattern_dict, tuple(window))
+
+    return sorted(rd_pattern_dict.items(), key=lambda x: x[1], reverse=True)
 
 # Takes in the list of tuples and prints out the pairs and counters in a readable way
 def print_pairs(sorted_pairs):
@@ -247,16 +319,16 @@ def main():
     instr_trace = sys.stdin.readlines()
     # print("Most common RS pairs")
     # print_pairs(track_rs_pairs(instr_trace, all_instrs))
-    # print("Most common RD pairs")
-    # print_pairs(track_rd_pairs(instr_trace, all_instrs))
+    print("Most common RD pairs")
+    print_pairs(track_rd_pairs(instr_trace, all_instrs))
 
-    rs_list, rd_list = track_rs_rd_pairs(instr_trace, all_instrs)
+    # rs_list, rd_list = track_rs_rd_pairs(instr_trace, all_instrs)
     # print("Most common RS pairs")
     # print_pairs(rs_list)
     # print("Most common RD pairs")
     # print_pairs(rd_list)
 
-    print_pairs(track_rs_patterns(instr_trace, 5, all_instrs))
+    print_pairs(track_rd_patterns(instr_trace, 2, all_instrs))
 
 if __name__ == "__main__":
     main()
