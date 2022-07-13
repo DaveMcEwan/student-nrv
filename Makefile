@@ -5,8 +5,7 @@
 
 .SECONDARY: # Used to stop make from deleting intermediate files
 
-# default: build
-# default: sim
+# Default targets are just the final ones (not including intermediate targets)
 default: assembly
 default: disassembly
 default: histogram
@@ -19,77 +18,128 @@ ifndef RISCV
 $(error "[ ERROR ] - RISCV variable not set!")
 endif
 
-# Macro definitions for directories to be used in the compile lines
+# ------------------------ Variable definitions -------------------------
+
+# 	Macro definitions for directories to be used in the compile lines
+# /src - Contains input .c files
 SRC_DIR 		= ./src
+# /src/common - Contains shared files between inputs e.g. syscalls.c
 SRC_COMMON_DIR  = ./src/common
+# /build - Constructed directory used to store outputs from recipes including
+#	executables, instruction traces, display pngs etc.
 BUILD_DIR 		= ./build
 
+# Include flag used in compile lines to include header files needed when
+#	compiling using the embecosm compilers
 INCLUDES 		= -I./include
 
 LINKER_SCRIPT 	= link.ld
 
-MK_CSV 			:=  ./csv/csv.mk
+# Makefile functions and variables used to parse the input .csv file here
+MK_CSV 			:= ./csv/csv.mk
+# Input CSV file
 CSV 			?= ./csv/config5.csv
 
 $(shell echo CSV FNAME currently set to : ${CSV})
 
 include ${MK_CSV}
 
+# In this Makefile, there are two sets of variables detailing the information
+#	from the CSV files:
+#	- Variables read from the CSV - We initially directly read the information 
+#	from the CSVs and store them in variables/lists prefixed with 'R_'. This
+#	allows us to set up the recipe targets and have the CSV information present
+#	in the file path which can be read from after.
+#	- Variables read using the pattern rule - We can only access specific values
+#	in the recipe of a target but taking the information from the file path which
+#	we can access using the pattern rule. These variables parse the file path for
+#	each specific target and use that information in the recipes as desired
+
 # ----- Variables based on the CSV - Used for initial directory formatting -----
+# 	Forms lists of the values in specific columns
+# ISA instruction word size - 32 or 64
 R_XLEN		= $(call CSV_COL,1,${row})
+# Compiler - gcc or clang
 R_COMPILER	= $(call CSV_COL,2,${row})
+# ISA - String detailing the ISA following the RISC-V naming convention
 R_ISA		= $(call CSV_COL,3,${row})
+# ABI - Application binary interface : ilp32, lp64 or ilp32e
 R_ABI		= $(call CSV_COL,4,${row})
+# NPROC - How many cores we are using to simulate the program
 R_NPROC 	= $(call CSV_COL,5,${row})
+# FNAME - Input ML program name
 R_FNAME		= $(call CSV_COL,6,${row})
 
-#	Forming the targets
-# Target instruction trace, based on the CSV values
+# ---------------------------- Forming the targets ----------------------------
+# Targets are created under directory paths formed by the information from the CSV files
+#	collected in the variables prefixed with 'R_'
+
+# TRACES is a list holding all instruction trace target directory paths which 
+# 	will be used to form the other targets. Formed by looking at all rows of the CSV 
+# 	e.g. build/rv32gc-ilp32-gcc/cv_testcase/nproc-8/testcase.trc
+#		 build/$(isa)-$(abi)-$(compiler)/$(fname)/testcase.trc
 TRACES := $(foreach row,${CSV_ROWS},$\
 	${BUILD_DIR}/$\
 	rv$(call R_XLEN)$(call R_ISA)-$(call R_ABI)-$(call R_COMPILER)/$\
 	$(call R_FNAME)/nproc-$(call R_NPROC)/testcase.trc)
 
 # 	Form the other targets using string manipulation with the current target
+# main.trc - Section of instruction trace between where we enter and leave main
 MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
-MAIN_INSTRUCTIONS  := $(subst testcase,cut-down-main,${TRACES})
+MAIN_INSTRUCTIONS  := $(subst testcase,cut-down-main,${TRACES}) # TODO - Remove
+
+# Byte streams - used for bandwidth calculations
+# TODO - Check if needed
 LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
 STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
 
-# Go up one directory - places us in the FNAME directory
+# 	Directory names - Formed by adjusting the TRACES list
+# nproc - subdirectories used to contain the files associated with
+#	simulating with a specific number of processors
 NPROC_DIRS 	:= $(dir ${TRACES})
+# fname - subdirectories holding all files related to a single input ML file
 FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
+# common - subdirectory used to store temporary files used by multiple test cases
 COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
 
+#	Target files
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
+# Histograms produced by Spike
 HISTOGRAMS 		   := $(subst .o,.hst,${OBJECTS})
 EXECUTABLES 	   := $(subst .o,.elf,${OBJECTS})
 ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
 DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
+# (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
-# ----- Variable definitions based on the pattern rule -----
-# Example directory name : rv32gc-ilp32-gcc/printf/nproc-2/
+# --------------- Variable definitions based on the pattern rule ---------------
+# Second set of variable names/definitions. This one is formed based on the
+#	pattern rule where the information is taken from the file path of the target.
+
+# Example file path : rv32gc-ilp32-gcc/printf/nproc-2/
+
+# Splitting up the file path into individual components
 DIRNAME_SPLIT1 = $(subst -,${space},$*)
 DIRNAME_SPLIT2 = $(subst /,${space}, $(DIRNAME_SPLIT1))
 # The example at this point would then be : rv32gc ilp32 gcc printf nproc 2
-ISA 		= $(word 1, $(DIRNAME_SPLIT2))
-ABI			= $(word 2, $(DIRNAME_SPLIT2))
-COMPILER 	= $(word 3, $(DIRNAME_SPLIT2))
-FNAME 		= $(word 4, $(DIRNAME_SPLIT2))
+ISA 		= $(word 1, $(DIRNAME_SPLIT2)) # rv32gc
+ABI			= $(word 2, $(DIRNAME_SPLIT2)) # ilp32
+COMPILER 	= $(word 3, $(DIRNAME_SPLIT2)) # gcc
+FNAME 		= $(word 4, $(DIRNAME_SPLIT2)) # printf
 # The 5th word is nproc; no information we can take from this
-N_PROC 		= $(word 6, $(DIRNAME_SPLIT2))
+N_PROC 		= $(word 6, $(DIRNAME_SPLIT2)) # 2
 
 # If there is a '32' present in rv__, set XLEN to it. 
 #	Else set it to 64 if that is present
 XLEN 	 	= $(findstring 32, $(ISA))
 XLEN 	 	?= $(findstring 64, $(ISA))
 
-# Form the compilation command
-CC = riscv$(XLEN)-unknown-elf-$(COMPILER)
-
+#	Commands used within recipes that require these variables taken from the
+#		file path using the pattern rule
+CC = riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
 OBJDUMP = ${RISCV}/bin/riscv$(XLEN)-unknown-elf-objdump
-SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size
+SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size 
+
 SPIKE 	= ${RISCV}/bin/spike
 
 # Default compiler flags
