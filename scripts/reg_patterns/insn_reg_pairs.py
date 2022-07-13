@@ -72,6 +72,7 @@ def append_to_counter_dict(dict, insn_name):
     else:
         dict[insn_name] = 1
 
+# Measure the most frequent instruction pairs where there is an rs
 def track_insn_rs_pairs(instr_trace, all_instrs):
     pairs_dict = {}
     key_string = ""
@@ -123,6 +124,7 @@ def track_insn_rs_pairs(instr_trace, all_instrs):
 
     return sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
 
+# Measure the most frequent instruction pairs where there is an rd
 def track_insn_rd_pairs(instr_trace, all_instrs):
     pairs_dict = {}
     key_string = ""
@@ -162,6 +164,7 @@ def track_insn_rd_pairs(instr_trace, all_instrs):
 
     return sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
 
+# Measure the most frequent instruction pairs where there is either an rs or rd
 def track_insn_rs_rd_pairs(instr_trace, all_instrs):
     pairs_dict = {}
     key_string = ""
