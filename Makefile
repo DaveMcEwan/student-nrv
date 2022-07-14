@@ -10,7 +10,6 @@ default: assembly
 default: disassembly
 default: histogram
 default: extract_main
-default: extract_instruction_names
 default: bw_streams
 
 # Checking if a RISCV compiler is present
@@ -86,7 +85,6 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 # 	Form the other targets using string manipulation with the current target
 # main.trc - Section of instruction trace between where we enter and leave main
 MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
-MAIN_INSTRUCTIONS  := $(subst testcase,cut-down-main,${TRACES}) # TODO - Remove
 
 # Byte streams - used for bandwidth calculations
 # TODO - Check if needed
@@ -331,13 +329,6 @@ ${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc
 ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
-# TODO - Remove and adjust other scripts to be in line with the new indices
-.PHONY: extract_instruction_names
-extract_instruction_names: ${MAIN_INSTRUCTIONS}
-
-${BUILD_DIR}/%/cut-down-main.trc: ${BUILD_DIR}/%/main.trc
-	cat $< | awk '{split($$0,a,": "); print a[2]}' > $@
-
 # TODO : Expand bandwidth recipes so that it produces the display scripts too
 .PHONY: bw_streams
 bw_streams: produce_load_bw produce_store_bw
@@ -345,13 +336,13 @@ bw_streams: produce_load_bw produce_store_bw
 .PHONY: produce_load_bw
 produce_load_bw: ${LOAD_BYTE_STREAMS}
 
-${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/cut-down-main.trc
+${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc
 	python3 scripts/bandwidth/load_bw/load_bw.py --isa=$(ISA) < $< > $@
 
 .PHONY: produce_store_bw
 produce_store_bw: ${STORE_BYTE_STREAMS}
 
-${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/cut-down-main.trc
+${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc
 	python3 scripts/bandwidth/store_bw/store_bw.py --isa=$(ISA) < $< > $@
 
 # ----------------------------------- CLEAN ------------------------------------
