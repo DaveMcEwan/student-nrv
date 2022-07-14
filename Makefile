@@ -142,15 +142,56 @@ SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size
 
 SPIKE 	= ${RISCV}/bin/spike
 
-# Default compiler flags
+# 	Default compiler flags
+# More information : https://gcc.gnu.org/onlinedocs/gcc/RISC-V-Options.html
+
+# ISA Configuration
+#	- Determines the base instruction set and the additional extensions
+#	- Uses:
+#		- Spike - Determines what instructions and registers to have available
+#		when simulating,
+#		- Script analysis - Determines what instructions and registers to look
+#		at when parsing.
 CFLAGS = -march=$(ISA)
+
+# ABI - Application Binary Interface
+#	- Specifies the integer and floating-point calling convention
+#	- Determines the bit sizes of the types
 CFLAGS += -mabi=${ABI}
+
+# mcmodel -  Code model
+#	- Determines the code model (medlow/medium-low or medany/medium-any)
+#	- Used to determine conditions for the address range where the program
+#	and it's statically defifned symbols can be placed
 CFLAGS += -mcmodel=medany
+
+# freestanding program
+#	- Tells the compiler that the standard library may not exist and so
+#	it should be a freestanding/bare-metal program (does not load an external
+#	module)
+#	- Needed so that we can use functions provided by syscalls.c that use
+#	the HTIF (Host/Target Interface) which the Spike simulator will be
+#	able to simulate
 CFLAGS += -ffreestanding
+
+# Static libraries
+#	- Forces program to use static libraries
+#	- Needed to allow us to specifically state what libraries we want present in
+#	the program
 CFLAGS += -static
-CFLAGS += -nostdlib
-CFLAGS += -nostartfiles 
 CFLAGS += -lgcc
+
+# No standard libraries
+#	- Tells the program to not use the standard system startup files or libraries 
+#	when linking
+#	- Allows us to use our own linker scripts
+CFLAGS += -nostdlib
+
+# No standard startup files
+#	- Tells the compiler to not use the standard system startup files when linking
+#	- Allows us to use our own startup files which work unlike the standard ones
+#	in setting up the system so that it can be simulated in Spike properly.
+CFLAGS += -nostartfiles
 
 LDFLAGS = -T${LINKER_SCRIPT}
 
