@@ -119,6 +119,7 @@ MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 # Example file path : rv32gc-ilp32-gcc/printf/nproc-2/
 
 # Splitting up the file path into individual components
+# $* - Pattern rule from which the file path will be determined from
 DIRNAME_SPLIT1 = $(subst -,${space},$*)
 DIRNAME_SPLIT2 = $(subst /,${space}, $(DIRNAME_SPLIT1))
 # The example at this point would then be : rv32gc ilp32 gcc printf nproc 2
@@ -227,20 +228,45 @@ print_all: TRACES
 TRACES:
 	mkdir -p ${FNAME_DIRS}
 
-# ----------------------------------- BUILD ------------------------------------
+# Details of all recipes can be found in /doc/dependencies.md
+
+#	------------------------------ DIRECTORIES --------------------------------
+# Targets to form all needed directories in one to avoid having multiple separate 
+#	mkdir commands that flood the command line.
+
+NPROC_DIRS:
+	@echo Making all NPROC_DIRS
+	mkdir -p ${NPROC_DIRS}
+
+FNAME_DIRS:
+	@echo Making all FNAME_DIRS
+	mkdir -p ${FNAME_DIRS}
+
+COMMON_DIRS:
+	@echo Making all COMMON_DIRS
+	mkdir -p ${COMMON_DIRS}
+
+# ----------------------------------- BUILD -----------------------------------
+# Compilation targets (executables and object files)
 .PHONY: build
 build: ${EXECUTABLES}
 
-# Executable target
-# example $* = rv32gc-ilp32-gcc/simple_add/nproc-1/..
-${BUILD_DIR}/%/testcase.elf: ${BUILD_DIR}/%/testcase.o \
+# Executable
+# example $* = % = rv32gc-ilp32-gcc/simple_add/nproc-1/..
+${BUILD_DIR}/%/testcase.elf: \
+	${BUILD_DIR}/%/testcase.o \
 	${BUILD_DIR}/%/../common/syscalls.o \
+	${SRC_COMMON_DIR}/entry.S \
 	| FNAME_DIRS
 
-	${CC} $^ ${SRC_COMMON_DIR}/entry.S $(CFLAGS) ${INCLUDES} ${LDFLAGS} -o $@
+	${CC} $^ $(CFLAGS) ${INCLUDES} ${LDFLAGS} -o $@
 
-# Bottom of the dependency tree
-# Secondary expansion used to access the pattern rule in the dependency list
+# First dependency of this recipe is dependent on information in the file path of the
+#	recipe which must be expanded into $*. Secondary expansion is used to then access
+#	the file path through the pattern rule which after parsing a bit and adding the 
+#	necessary prefixes and suffixes, forms the file path for the input test case (whose
+#	name is present in the file path)
+# Input program object file
 .SECONDEXPANSION:
 ${BUILD_DIR}/%/testcase.o: \
 	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
@@ -248,13 +274,18 @@ ${BUILD_DIR}/%/testcase.o: \
 
 	${CC} $(CFLAGS) ${INCLUDES} -c $^ -o $@
 
+# syscalls object file
 ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
 	${CC} $(CFLAGS) ${INCLUDES} -w -c $< -o $@
 
 # --------------------------------- ASSEMBLY ----------------------------------
+# Assembly file produced using the '-S' flag with the compilation line; currently
+#	not being used for any analysis
+
 .PHONY: assembly
 assembly: ${ASSEMBLIES}
 
+# Secondary expansion use explained in the testcase.o recipe
 .SECONDEXPANSION:
 ${BUILD_DIR}/%/testcase.S: \
 	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
@@ -263,24 +294,30 @@ ${BUILD_DIR}/%/testcase.S: \
 	${CC} $(CFLAGS) ${INCLUDES} -S $^ -o $@
 
 # --------------- INSTRUCTION TRACE, DISASSEMBLY and HISTOGRAM ---------------
+
+# Instruction trace
 .PHONY: sim
 sim: ${TRACES}
 
 ${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../testcase.elf | NPROC_DIRS
 	${SPIKE} -p${N_PROC} -l --isa=$(ISA) $< 2> $@
 
+# Disassembly
 .PHONY: disassembly
 disassembly: ${DISASSEMBLIES}
 
 ${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
 	${OBJDUMP} -S -D $< > $@
 
+# Histogram produced using the '-g' flag
 .PHONY: histogram
 histogram: ${HISTOGRAMS}
 
 ${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
 	${SPIKE} -g --isa=$(ISA) $< 2> $@
 
+# Reduced instruction trace that only covers the region where we
+#	enter and leave main
 .PHONY: extract_main
 extract_main: ${MAIN_TRACES}
 
@@ -289,15 +326,19 @@ ${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
 	sed -n '/${START_ADDRESS}/,/${END_ADDRESS}/p' ${BUILD_DIR}/$*/testcase.trc > $@
 
+# Reduced disassembly - only covering the main function to then parse the start and end
+#	address from
 ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
+# TODO - Remove and adjust other scripts to be in line with the new indices
 .PHONY: extract_instruction_names
 extract_instruction_names: ${MAIN_INSTRUCTIONS}
 
 ${BUILD_DIR}/%/cut-down-main.trc: ${BUILD_DIR}/%/main.trc
 	cat $< | awk '{split($$0,a,": "); print a[2]}' > $@
 
+# TODO : Expand bandwidth recipes so that it produces the display scripts too
 .PHONY: bw_streams
 bw_streams: produce_load_bw produce_store_bw
 
@@ -312,19 +353,6 @@ produce_store_bw: ${STORE_BYTE_STREAMS}
 
 ${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/cut-down-main.trc
 	python3 scripts/bandwidth/store_bw/store_bw.py --isa=$(ISA) < $< > $@
-
-#	Directory targets, create all needed directories in one
-NPROC_DIRS:
-	@echo Making all NPROC_DIRS
-	mkdir -p ${NPROC_DIRS}
-
-FNAME_DIRS:
-	@echo Making all FNAME_DIRS
-	mkdir -p ${FNAME_DIRS}
-
-COMMON_DIRS:
-	@echo Making all COMMON_DIRS
-	mkdir -p ${COMMON_DIRS}
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
