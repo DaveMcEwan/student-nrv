@@ -8,30 +8,28 @@ import matplotlib.pyplot as plt
 import scipy
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--img", help="Save path for the png figure")
-args = parser.parse_args() # File path stored in args.img
+parser.add_argument("--img", help="Save path for the pdf figure") # File path stored in args.img
+parser.add_argument("-n", "--window", help="Moving Average window size") # args.window
+args = parser.parse_args() 
 
-def moving_average_scipy(input_stream, window_size):
-    return list(scipy.convolve(input_stream, [1]*window_size, 'same') / window_size)
+def moving_average_scipy(input_stream):
+    return list(scipy.convolve(input_stream, [1]*int(args.window), 'same') / int(args.window))
 
-def display_graph(avg_stream, n):
+def display_graph(avg_stream):
     time_axis = list(range(len(avg_stream)))
 
-    plt.figure(n)
     plt.plot(time_axis, avg_stream)
-    plt.title('Moving Average output for n='+str(n))
+    plt.title('Moving Average output for n='+args.window)
     plt.xlabel('Line Number')
     plt.ylabel('Bytes transferred')
-    plt.savefig(args.img+"_"+str(n)+".png")
+    plt.savefig(args.img)
 
 def main():
     # Read the stdin input as a variable so we can then return to it
     input = sys.stdin.readlines()
     input_floats = [float(x) for x in input]
 
-    for n in range(10):
-        n = 1 << n # Square the 2 to adjust the window size
-        display_graph(moving_average_scipy(input_floats, n), n)
+    display_graph(moving_average_scipy(input_floats))
 
 if __name__ == "__main__":
     main()

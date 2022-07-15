@@ -10,7 +10,7 @@ default: assembly
 default: disassembly
 default: histogram
 default: extract_main
-default: bw_streams
+default: bandwidth
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -86,11 +86,6 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 # main.trc - Section of instruction trace between where we enter and leave main
 MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
 
-# Byte streams - used for bandwidth calculations
-# TODO - Check if needed
-LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
-STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
-
 # 	Directory names - Formed by adjusting the TRACES list
 # nproc - subdirectories used to contain the files associated with
 #	simulating with a specific number of processors
@@ -99,6 +94,8 @@ NPROC_DIRS 	:= $(dir ${TRACES})
 FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
 # common - subdirectory used to store temporary files used by multiple test cases
 COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
+# figures - subdirectories for any figures
+FIGURE_DIRS := $(addsuffix figures/,${NPROC_DIRS})
 
 #	Target files
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
@@ -109,6 +106,27 @@ ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
 DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 # (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
+
+#	Figures
+LOAD_BYTE_FIGURE  := $(addsuffix load_byte.txt,${FIGURE_DIRS})
+LOAD_BYTE_ALL  	  := $(addsuffix load_byte_*.pdf,${FIGURE_DIRS})
+STORE_BYTE_FIGURE := $(addsuffix store_byte.txt,${FIGURE_DIRS})
+
+LOAD_BW_2		  := $(addsuffix load_bw_2.pdf,${FIGURE_DIRS})
+LOAD_BW_4		  := $(addsuffix load_bw_4.pdf,${FIGURE_DIRS})
+LOAD_BW_8		  := $(addsuffix load_bw_8.pdf,${FIGURE_DIRS})
+LOAD_BW_16	  	  := $(addsuffix load_bw_16.pdf,${FIGURE_DIRS})
+LOAD_BW_32	  	  := $(addsuffix load_bw_32.pdf,${FIGURE_DIRS})
+LOAD_BW_64	  	  := $(addsuffix load_bw_64.pdf,${FIGURE_DIRS})
+LOAD_BW_128	  	  := $(addsuffix load_bw_128.pdf,${FIGURE_DIRS})
+
+STORE_BW_2		  := $(addsuffix store_bw_2.pdf,${FIGURE_DIRS})
+STORE_BW_4		  := $(addsuffix store_bw_4.pdf,${FIGURE_DIRS})
+STORE_BW_8		  := $(addsuffix store_bw_8.pdf,${FIGURE_DIRS})
+STORE_BW_16	  	  := $(addsuffix store_bw_16.pdf,${FIGURE_DIRS})
+STORE_BW_32	  	  := $(addsuffix store_bw_32.pdf,${FIGURE_DIRS})
+STORE_BW_64	  	  := $(addsuffix store_bw_64.pdf,${FIGURE_DIRS})
+STORE_BW_128	  := $(addsuffix store_bw_128.pdf,${FIGURE_DIRS})
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
@@ -232,17 +250,25 @@ TRACES:
 # Targets to form all needed directories in one to avoid having multiple separate 
 #	mkdir commands that flood the command line.
 
+# .PHONY: NPROC_DIRS
 NPROC_DIRS:
 	@echo Making all NPROC_DIRS
 	mkdir -p ${NPROC_DIRS}
 
+# .PHONY: FNAME_DIRS
 FNAME_DIRS:
 	@echo Making all FNAME_DIRS
 	mkdir -p ${FNAME_DIRS}
 
+# .PHONY: COMMON_DIRS
 COMMON_DIRS:
 	@echo Making all COMMON_DIRS
 	mkdir -p ${COMMON_DIRS}
+
+# .PHONY: FIGURE_DIRS
+FIGURE_DIRS:
+	@echo Making all FIGURE_DIRS
+	mkdir -p ${FIGURE_DIRS}
 
 # ----------------------------------- BUILD -----------------------------------
 # Compilation targets (executables and object files)
@@ -329,21 +355,134 @@ ${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc
 ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
-# TODO : Expand bandwidth recipes so that it produces the display scripts too
-.PHONY: bw_streams
-bw_streams: produce_load_bw produce_store_bw
+# ------------------------ INSTRUCTION TRACE ANALYSIS -------------------------
+# 			------------------------ BANDWIDTH -------------------------
 
-.PHONY: produce_load_bw
-produce_load_bw: ${LOAD_BYTE_STREAMS}
+# make bandwidth - forms all possible figures
+.PHONY: display_bandwidth
+display_bandwidth: display_load_bw_all display_store_bw_all
 
+# 			-------------------------- LOAD ---------------------------
+# make display_load_bw_all - forms all load_bw figures
+.PHONY: display_load_bw_all
+display_load_bw_all: display_load_bw_2 display_load_bw_4 display_load_bw_8 display_load_bw_16 display_load_bw_32 display_load_bw_64 display_load_bw_128
+
+# make load_bw_small - Only produces figures using small window sizes
+.PHONY: load_bw_small
+load_bw_small : display_load_bw_2 display_load_bw_4
+
+# make load_bw_medium - Only produces figures using medium window sizes
+.PHONY: load_bw_medium
+load_bw_small : display_load_bw_8 display_load_bw_16 display_load_bw_32
+
+# make load_bw_large - Only produces figures using large window sizes
+.PHONY: load_bw_large
+load_bw_small : display_load_bw_64 display_load_bw_128
+
+# make load_bw_x - forms all bw figures for a moving window of size x for powers
+#	of 2 in the range [2, 128]
+.PHONY: display_load_bw_2
+display_load_bw_2 : ${LOAD_BW_2}
+${BUILD_DIR}/%/figures/load_bw_2.pdf: ${BUILD_DIR}/%/load-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=2 < $<
+
+.PHONY: display_load_bw_4
+display_load_bw_4 : ${LOAD_BW_4}
+${BUILD_DIR}/%/figures/load_bw_4.pdf: ${BUILD_DIR}/%/load-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=4 < $<
+
+.PHONY: display_load_bw_8
+display_load_bw_8 : ${LOAD_BW_8}
+${BUILD_DIR}/%/figures/load_bw_8.pdf: ${BUILD_DIR}/%/load-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=8 < $<
+
+.PHONY: display_load_bw_16
+display_load_bw_16 : ${LOAD_BW_16}
+${BUILD_DIR}/%/figures/load_bw_16.pdf: ${BUILD_DIR}/%/load-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=16 < $<
+
+.PHONY: display_load_bw_32
+display_load_bw_32 : ${LOAD_BW_32}
+${BUILD_DIR}/%/figures/load_bw_32.pdf: ${BUILD_DIR}/%/load-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=32 < $<
+
+.PHONY: display_load_bw_64
+display_load_bw_64 : ${LOAD_BW_64}
+${BUILD_DIR}/%/figures/load_bw_64.pdf: ${BUILD_DIR}/%/load-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=64 < $<
+
+.PHONY: display_load_bw_128
+display_load_bw_128 : ${LOAD_BW_128}
+${BUILD_DIR}/%/figures/load_bw_128.pdf: ${BUILD_DIR}/%/load-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=128 < $<
+
+# 			-------------------------- STORE ---------------------------
+# make display_store_bw_all - forms all store_bw figures
+.PHONY: display_store_bw_all
+display_store_bw_all: display_store_bw_2 display_store_bw_4 display_store_bw_8 display_store_bw_16 display_store_bw_32 display_store_bw_64 display_store_bw_128
+
+.PHONY: display_store_bw_small
+display_store_bw_small : display_store_bw_2 display_store_bw_4
+
+.PHONY: display_store_bw_medium
+display_store_bw_small : display_store_bw_8 display_store_bw_16 display_store_bw_32
+
+.PHONY: display_store_bw_large
+display_store_bw_small : display_store_bw_64 display_store_bw_128
+
+# make display_store_bw_x - forms all bw figures for a moving window of size x
+.PHONY: display_store_bw_2
+display_store_bw_2 : ${STORE_BW_2}
+${BUILD_DIR}/%/figures/store_bw_2.pdf: ${BUILD_DIR}/%/store-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=2 < $<
+
+.PHONY: display_store_bw_4
+display_store_bw_4 : ${STORE_BW_4}
+${BUILD_DIR}/%/figures/store_bw_4.pdf: ${BUILD_DIR}/%/store-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=4 < $<
+
+.PHONY: display_store_bw_8
+display_store_bw_8 : ${STORE_BW_8}
+${BUILD_DIR}/%/figures/store_bw_8.pdf: ${BUILD_DIR}/%/store-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=8 < $<
+
+.PHONY: display_store_bw_16
+display_store_bw_16 : ${STORE_BW_16}
+${BUILD_DIR}/%/figures/store_bw_16.pdf: ${BUILD_DIR}/%/store-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=16 < $<
+
+.PHONY: display_store_bw_32
+display_store_bw_32 : ${STORE_BW_32}
+${BUILD_DIR}/%/figures/store_bw_32.pdf: ${BUILD_DIR}/%/store-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=32 < $<
+
+.PHONY: display_store_bw_64
+display_store_bw_64 : ${STORE_BW_64}
+${BUILD_DIR}/%/figures/store_bw_64.pdf: ${BUILD_DIR}/%/store-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=64 < $<
+
+.PHONY: display_store_bw_128
+display_store_bw_128 : ${STORE_BW_128}
+${BUILD_DIR}/%/figures/store_bw_128.pdf: ${BUILD_DIR}/%/store-byte-stream.trc | FIGURE_DIRS
+	python3 scripts/bandwidth/display_bw.py --img=$@ --window=128 < $<
+
+# 	Recipes for solely producing the bandwidth streams
+# make bandwidth_streams - forms all possible bandwidth stream traces
+.PHONY: bandwidth_streams
+bandwidth: load_bw_streams store_bw_streams
+
+.PHONY: load_bw_streams
+load_bw_streams: ${LOAD_BYTE_STREAMS}
 ${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc
 	python3 scripts/bandwidth/load_bw/load_bw.py --isa=$(ISA) < $< > $@
 
-.PHONY: produce_store_bw
-produce_store_bw: ${STORE_BYTE_STREAMS}
-
+.PHONY: store_bw_streams
+store_bw_streams: ${STORE_BYTE_STREAMS}
 ${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc
 	python3 scripts/bandwidth/store_bw/store_bw.py --isa=$(ISA) < $< > $@
+
+# 			------------------------ PLACEHOLDER -------------------------
+
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
