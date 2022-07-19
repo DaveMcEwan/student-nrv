@@ -23,12 +23,12 @@ def track_patterns(instr_trace, n):
 
     # Set up the first window
     for i in range(n):
-        window[i] = instr_trace[i].split()[2]
+        window[i] = instr_trace[i].split()[4]
     patterns_dict[tuple(window)] = 1
 
     # Iterate through the rest of the instructions
     for line in instr_trace[n:]:
-        insn_name = line.split()[2]
+        insn_name = line.split()[4]
 
         # Push new instruction into the window and pop the element at the 0th index
         window.append(insn_name)
@@ -53,6 +53,14 @@ def track_patterns(instr_trace, n):
 def local_maxima(all_patterns_dict, min, diff_threshold, plot):
     # List comprehension to filter out patterns smaller than a certain counter value
     filtered_patterns = {k:r for k, r in all_patterns_dict.items() if r > min}
+
+    print("Minimum Count: "+str(min)+", Differentiation threshold: "+str(diff_threshold))
+
+    if not filtered_patterns:
+        print("No pattern has occured more often than the set minimum: "+str(min))
+        print("Change this value in scripts/insn_patterns/insn_patterns.py")
+        return []
+    
     # sorted() returns a list
     sorted_patterns_list = sorted(filtered_patterns.items(), key=lambda x: x[1], reverse=True)
     sorted_patterns = dict(sorted_patterns_list)
@@ -66,6 +74,11 @@ def local_maxima(all_patterns_dict, min, diff_threshold, plot):
     for index, x in enumerate(dy):
         if x > diff_threshold and index < len(dy)-1: # Append next index in patterns list
             maxima.append(sorted_patterns_list[index+1])
+    
+    if not maxima:
+        print("No local maxima detected; it may be that the set differentiation\
+            threshold :"+str(diff_threshold)+", is too high to detect a local maxima. \
+            Adjust this in scripts/insn_patterns/insn_patterns.py")
 
     if (plot):
         visualise_indices(sorted_patterns, dy, diff_threshold)
@@ -113,6 +126,8 @@ def timed_main():
 
 # Default main
 def main():
+    minimum_count = 1
+    diff_threshold = 5
     # Read in the stdin and store in the instr_trace variable
     instr_trace = sys.stdin.readlines()
     all_patterns_dict = {}
@@ -120,7 +135,8 @@ def main():
     for i in range(3, 8):
         all_patterns_dict.update(track_patterns(instr_trace, i))
 
-    print_pairs(local_maxima(all_patterns_dict, 5, 10, False))
+    # print_pairs(all_patterns_dict)
+    print_pairs(local_maxima(all_patterns_dict, minimum_count, diff_threshold, False))
 
 if __name__ == "__main__":
     main()

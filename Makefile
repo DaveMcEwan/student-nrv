@@ -109,12 +109,12 @@ DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 # (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
-LOAD_BYTE_STREAMS := $(subst testcase,load-byte-stream,${TRACES})
+#		--------------------- BANDWIDTH TARGETS ---------------------
+# Raw bandwidth streams
+LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
+STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
 
-#	Figures
-# LOAD_BW_ALL  	  := $(addsuffix load-bw-*.trc,${LOAD_BW_FIG_DIRS})
-LOAD_BW_ALL= $(LOAD_BW_2_TRC) $(LOAD_BW_4_TRC)
-
+#	Figures and corresponding average traces
 LOAD_BW_2		  := $(addsuffix load-bw-2.pdf,${LOAD_BW_FIG_DIRS})
 LOAD_BW_2_TRC	  := $(addsuffix load-bw-2.trc,${LOAD_BW_FIG_DIRS})
 
@@ -156,6 +156,9 @@ STORE_BW_64_TRC	  := $(addsuffix store-bw-64.trc,${STORE_BW_FIG_DIRS})
 
 STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_FIG_DIRS})
 STORE_BW_128_TRC  := $(addsuffix store-bw-128.trc,${STORE_BW_FIG_DIRS})
+
+#		----------------- PATTERN DETECTION TARGETS -----------------
+
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
