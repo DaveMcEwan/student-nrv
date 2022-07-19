@@ -76,7 +76,7 @@ def check_isa(isa):
 def count_loads(all_instrs):
     for line in sys.stdin:
         words = line.split()
-        insn_name = words[2]
+        insn_name = words[4]
 
         if insn_name in all_instrs:
             print(all_instrs[insn_name])
