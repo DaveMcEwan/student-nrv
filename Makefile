@@ -112,50 +112,50 @@ MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 LOAD_BYTE_STREAMS := $(subst testcase,load-byte-stream,${TRACES})
 
 #	Figures
-# LOAD_BW_ALL  	  := $(addsuffix load_bw_*.trc,${LOAD_BW_FIG_DIRS})
+# LOAD_BW_ALL  	  := $(addsuffix load-bw-*.trc,${LOAD_BW_FIG_DIRS})
 LOAD_BW_ALL= $(LOAD_BW_2_TRC) $(LOAD_BW_4_TRC)
 
-LOAD_BW_2		  := $(addsuffix load_bw_2.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_2_TRC	  := $(addsuffix load_bw_2.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_2		  := $(addsuffix load-bw-2.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_2_TRC	  := $(addsuffix load-bw-2.trc,${LOAD_BW_FIG_DIRS})
 
-LOAD_BW_4		  := $(addsuffix load_bw_4.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_4_TRC	  := $(addsuffix load_bw_4.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_4		  := $(addsuffix load-bw-4.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_4_TRC	  := $(addsuffix load-bw-4.trc,${LOAD_BW_FIG_DIRS})
 
-LOAD_BW_8		  := $(addsuffix load_bw_8.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_8_TRC	  := $(addsuffix load_bw_8.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_8		  := $(addsuffix load-bw-8.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_8_TRC	  := $(addsuffix load-bw-8.trc,${LOAD_BW_FIG_DIRS})
 
-LOAD_BW_16	  	  := $(addsuffix load_bw_16.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_16_TRC	  := $(addsuffix load_bw_16.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_16	  	  := $(addsuffix load-bw-16.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_16_TRC	  := $(addsuffix load-bw-16.trc,${LOAD_BW_FIG_DIRS})
 
-LOAD_BW_32	  	  := $(addsuffix load_bw_32.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_32_TRC	  := $(addsuffix load_bw_32.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_32	  	  := $(addsuffix load-bw-32.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_32_TRC	  := $(addsuffix load-bw-32.trc,${LOAD_BW_FIG_DIRS})
 
-LOAD_BW_64	  	  := $(addsuffix load_bw_64.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_64_TRC	  := $(addsuffix load_bw_64.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_64	  	  := $(addsuffix load-bw-64.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_64_TRC	  := $(addsuffix load-bw-64.trc,${LOAD_BW_FIG_DIRS})
 
-LOAD_BW_128	  	  := $(addsuffix load_bw_128.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_128_TRC	  := $(addsuffix load_bw_128.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_128	  	  := $(addsuffix load-bw-128.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_128_TRC	  := $(addsuffix load-bw-128.trc,${LOAD_BW_FIG_DIRS})
 
-STORE_BW_2		  := $(addsuffix store_bw_2.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_2_TRC	  := $(addsuffix store_bw_2.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_2		  := $(addsuffix store-bw-2.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_2_TRC	  := $(addsuffix store-bw-2.trc,${STORE_BW_FIG_DIRS})
 
-STORE_BW_4		  := $(addsuffix store_bw_4.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_4_TRC	  := $(addsuffix store_bw_4.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_4		  := $(addsuffix store-bw-4.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_4_TRC	  := $(addsuffix store-bw-4.trc,${STORE_BW_FIG_DIRS})
 
-STORE_BW_8		  := $(addsuffix store_bw_8.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_8_TRC	  := $(addsuffix store_bw_8.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_8		  := $(addsuffix store-bw-8.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_8_TRC	  := $(addsuffix store-bw-8.trc,${STORE_BW_FIG_DIRS})
 
-STORE_BW_16	  	  := $(addsuffix store_bw_16.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_16_TRC	  := $(addsuffix store_bw_16.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_16	  	  := $(addsuffix store-bw-16.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_16_TRC	  := $(addsuffix store-bw-16.trc,${STORE_BW_FIG_DIRS})
 
-STORE_BW_32	  	  := $(addsuffix store_bw_32.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_32_TRC	  := $(addsuffix store_bw_32.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_32	  	  := $(addsuffix store-bw-32.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_32_TRC	  := $(addsuffix store-bw-32.trc,${STORE_BW_FIG_DIRS})
 
-STORE_BW_64	  	  := $(addsuffix store_bw_64.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_64_TRC	  := $(addsuffix store_bw_64.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_64	  	  := $(addsuffix store-bw-64.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_64_TRC	  := $(addsuffix store-bw-64.trc,${STORE_BW_FIG_DIRS})
 
-STORE_BW_128	  := $(addsuffix store_bw_128.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_128_TRC  := $(addsuffix store_bw_128.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_128_TRC  := $(addsuffix store-bw-128.trc,${STORE_BW_FIG_DIRS})
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
@@ -190,7 +190,7 @@ SPIKE 	= ${RISCV}/bin/spike
 
 # ------------- Variables definitions based on the recipe target -------------
 # $@ - Recipe target
-WINDOW_SIZE = $(word 3, $(subst _, ,$(basename $(notdir $@))))
+WINDOW_SIZE = $(word 3, $(subst -, ,$(basename $(notdir $@))))
 
 # -------------------------- Default compiler flags --------------------------
 # More information : https://gcc.gnu.org/onlinedocs/gcc/RISC-V-Options.html
