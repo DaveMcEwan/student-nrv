@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import diff
+import sys
 
 # Function that takes in the dictionary of all patterns and locates the local maxima
 #   by filtering patterns that don't occur frequently, sorting the dictionary
@@ -44,6 +45,6 @@ def visualise_indices(sorted_patterns, dy, diff_threshold):
     plt.show()
 
 # Takes in the list of tuples and prints out the pairs and counters in a readable way
-def print_pairs(sorted_pairs):
+def print_pairs(sorted_pairs, stream=sys.stdout):
     for pair in sorted_pairs:
-        print(f'{f"{pair[0]}":<32} {str(pair[1])}')
+        print(f'{f"{pair[0]}":<48} {str(pair[1])}', file=stream)

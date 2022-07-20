@@ -32,6 +32,9 @@ from common.pattern_detection import local_maxima, print_pairs
 # Input argument parsing
 parser = argparse.ArgumentParser()
 parser.add_argument("-j", "--jsondump", help="Filepath/name for output JSON files")
+parser.add_argument("-r", "--rawdump", help="Filepath/name (without a file extension) \
+    for the formatted unfiltered output patterns (prior to identifying the local \
+    maxima). Two files are produced from this : a readable .txt file and a .JSON file")
 args = parser.parse_args()
 
 #   Iterate through the instruction stream and calculate the most frequent
@@ -100,6 +103,15 @@ def main():
     max_pattern_size = 8
     for i in range(min_pattern_size, max_pattern_size):
         all_patterns_dict.update(track_patterns(instr_trace, i))
+
+    # Optional raw information prior to the local maxima calculations can
+    #   be saved and stored in their own files
+    if args.rawdump:
+        raw_result = sorted(all_patterns_dict.items(), key=lambda x: x[1], reverse=True)
+        with open(args.rawdump+".JSON", 'w') as dump:
+            dump.write(json.dumps(raw_result))
+        with open(args.rawdump+".txt", 'w') as dump:
+            dump.write(json.dumps(print_pairs(raw_result, dump)))
 
     result = local_maxima(all_patterns_dict, minimum_count, diff_threshold, False)
 

@@ -28,6 +28,9 @@ from common.pattern_detection import local_maxima, print_pairs
 # Input argument parsing
 parser = argparse.ArgumentParser()
 parser.add_argument("-j", "--jsondump", help="Filepath/name for output JSON files")
+parser.add_argument("-r", "--rawdump", help="Filepath/name (without a file extension) \
+    for the formatted unfiltered output patterns (prior to identifying the local \
+    maxima). Two files are produced from this : a readable .txt file and a .JSON file")
 args = parser.parse_args()
 
 #   Iterate through the instruction stream and calculate the most frequent instruction pairs
@@ -59,11 +62,21 @@ def main():
     # Read in the stdin and store in the instr_trace variable
     instr_trace = sys.stdin.readlines()
 
-    result = local_maxima(track_pairs(instr_trace), minimum_count, diff_threshold, False)
+    raw_result = track_pairs(instr_trace)
+    # Optional raw information prior to the local maxima calculations can
+    #   be saved and stored in their own files
+    if args.rawdump:
+        sorted_raw = sorted(raw_result.items(), key=lambda x: x[1], reverse=True)
+        with open(args.rawdump+".JSON", 'w') as dump:
+            dump.write(json.dumps(sorted_raw))
+        with open(args.rawdump+".txt", 'w') as dump:
+            dump.write(json.dumps(print_pairs(sorted_raw, dump)))
+
+    result = local_maxima(raw_result, minimum_count, diff_threshold, False)
     
     # Dump the list of most common patterns in a .json file to access
     #   it easily in the display scripts
-    if (args.jsondump):
+    if args.jsondump:
         with open(args.jsondump, 'w') as dump:
             dump.write(json.dumps(result))
 
