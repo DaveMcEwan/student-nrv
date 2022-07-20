@@ -38,12 +38,10 @@ args = parser.parse_args()
 #       instruction patterns of size n
 def track_patterns(instr_trace, n):
     patterns_dict = {}
-    window = [0]*n # Empty list to represent the moving window looking for patterns
 
-    # Set up the first window
-    for i in range(n):
-        window[i] = instr_trace[i].split()[4]
-    patterns_dict[tuple(window)] = 1
+    # Initialise window
+    window = [x.split()[4] for x in instr_trace[:n]]
+    patterns_dict[', '.join(window)] = 1
 
     # Iterate through the rest of the instructions
     for line in instr_trace[n:]:
@@ -65,7 +63,7 @@ def track_patterns(instr_trace, n):
             patterns_dict[key_string] = 1
 
     # Returns a dictionary where each instruction pattern is associated with 
-    #   their counter   
+    #   their counter
     return patterns_dict
 
 # Main function with timing in case I want to come back and optimise again
@@ -86,7 +84,7 @@ def timed_main():
     print("Time taken to retrieve local maxima = "+str(end_time-start_time))
 
     start_time = time.time()
-    print_patterns(maxima)
+    print_pairs(maxima)
     end_time = time.time()
     print("Time taken to print = "+str(end_time-start_time))
 
