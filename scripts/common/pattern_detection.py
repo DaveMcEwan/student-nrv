@@ -11,6 +11,7 @@ from numpy import diff
 def local_maxima(all_patterns_dict, min, diff_threshold, plot):
     # List comprehension to filter out patterns smaller than a certain counter value
     filtered_patterns = {k:r for k, r in all_patterns_dict.items() if r > min}
+    
     # sorted() returns a list
     sorted_patterns_list = sorted(filtered_patterns.items(), key=lambda x: x[1], reverse=True)
     sorted_patterns = dict(sorted_patterns_list)
