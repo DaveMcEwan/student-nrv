@@ -2,26 +2,37 @@
 # Identify the most common instruction patterns (sequences of n instructions)
 
 # Input : Trimmed down instruction trace
-# Output : Formatted list giving the instruction patterns and a counter 
-#   detailing how often they've appeared
+# Output :  -  JSON file giving the list of tuples where each instruction
+#   pattern is stored with a counter giving how often that pattern has
+#   occured. To then be passed into display files. (Optional)
+#           -  Formatted list giving the instruction patterns and a counter 
+#   detailing how often they've appeared.
 
 # Example to guide use:
 # Run the command : python3 scripts/insn_patterns/insn_patterns.py \
+#                   -j=<optional json file path> \
 #                   < scripts/example-printf.trc
 #   while in the base directory
 
 import sys
 import time
+import json
+import os
+import argparse
 
 # Adding the parent directory to the python file path to 
 #   allow absolute file path inclusions
-import os
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
 
 # Function to calculate the local maxima among groups of values
 from common.pattern_detection import local_maxima, print_patterns
+
+# Input argument parsing
+parser = argparse.ArgumentParser()
+parser.add_argument("-j", "--jsondump", help="Filepath/name for output JSON files")
+args = parser.parse_args()
 
 #   Iterate through the instruction stream and calculate the most frequent
 #       instruction patterns of size n
@@ -85,7 +96,16 @@ def main():
     for i in range(3, 8):
         all_patterns_dict.update(track_patterns(instr_trace, i))
 
-    print_patterns(local_maxima(all_patterns_dict, minimum_count, diff_threshold, False))
+    result = local_maxima(all_patterns_dict, minimum_count, diff_threshold, False)
+
+    # Dump the list of most common patterns in a .json file to access
+    #   it easily in the display scripts
+    if args.jsondump:
+        with open(args.jsondump, 'w') as dump:
+            dump.write(json.dumps(result))
+
+    # Print the formatted version to stdout for user readability
+    print_patterns(result)
 
 if __name__ == "__main__":
     main()
