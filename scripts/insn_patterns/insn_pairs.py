@@ -10,7 +10,7 @@
 
 # Example to guide use:
 # Run the command : python3 scripts/insn_patterns/insn_pairs.py \
-#                   -j=<optional json file path>
+#                   -j=<optional json file path> \
 #                   < scripts/example-printf.trc
 #   while in the base directory
 

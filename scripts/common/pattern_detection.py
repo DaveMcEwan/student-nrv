@@ -46,9 +46,3 @@ def visualise_indices(sorted_patterns, dy, diff_threshold):
 def print_pairs(sorted_pairs):
     for pair in sorted_pairs:
         print(f'{f"{pair[0]}":<32} {str(pair[1])}')
-
-# Formatted printing for dictionaries of patterns
-def print_patterns(sorted_pairs):
-    for pair in sorted_pairs:
-        stripped_key = str(pair[0])[1:-1].replace("'","")
-        print(f'{f"{stripped_key}":<32} {str(pair[1])}')

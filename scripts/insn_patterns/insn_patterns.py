@@ -27,7 +27,7 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 
 # Function to calculate the local maxima among groups of values
-from common.pattern_detection import local_maxima, print_patterns
+from common.pattern_detection import local_maxima, print_pairs
 
 # Input argument parsing
 parser = argparse.ArgumentParser()
@@ -53,11 +53,16 @@ def track_patterns(instr_trace, n):
         window.append(insn_name)
         window = window[1:]
 
-        key_tuple = tuple(window)
-        if (key_tuple in patterns_dict):
-            patterns_dict[key_tuple] += 1
+        # Concatenate the elements of the window list to form a string which
+        #   then acts as a key for the dictionary. Done so that the format matches
+        #   that of the pair detection algorithm and because dictionaries can only
+        #   take immutable types as keys
+        key_string = ', '.join(window)
+
+        if (key_string in patterns_dict):
+            patterns_dict[key_string] += 1
         else:
-            patterns_dict[key_tuple] = 1
+            patterns_dict[key_string] = 1
 
     # Returns a dictionary where each instruction pattern is associated with 
     #   their counter   
@@ -93,7 +98,9 @@ def main():
     instr_trace = sys.stdin.readlines()
     all_patterns_dict = {}
 
-    for i in range(3, 8):
+    min_pattern_size = 3
+    max_pattern_size = 8
+    for i in range(min_pattern_size, max_pattern_size):
         all_patterns_dict.update(track_patterns(instr_trace, i))
 
     result = local_maxima(all_patterns_dict, minimum_count, diff_threshold, False)
@@ -105,7 +112,7 @@ def main():
             dump.write(json.dumps(result))
 
     # Print the formatted version to stdout for user readability
-    print_patterns(result)
+    print_pairs(result)
 
 if __name__ == "__main__":
     main()
