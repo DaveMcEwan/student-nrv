@@ -14,41 +14,64 @@ import csv
 def check_isa(isa, keys=None):    
     all_instrs = {}
 
-    # Determine base instruction set based on the XLEN
-    if int(isa[2:4]) == 32:
-        all_instrs.update(convert_csv_to_dict("rv32", keys))
-    else:
-        # No file yet made for this condition
-        all_instrs.update(convert_csv_to_dict("rv64", keys))
+    #           ----- Parsing the XLEN value -----
+    XLEN = int(isa[2:4])
+    # Include the instructions from the isa of that word length
+    all_instrs.update(convert_csv_to_dict("rv"+str(XLEN), keys))
     
-    # Include relevant instructions based on the remaining instructions
+    #      ----- Parsing the remaining characters -----
     # Dictionary to track what's been included
     history = { 'm' : False,
                 'a' : False,
                 'f' : False,
+                'd' : False,
+                'g' : False,
                 'c' : False,
                 'p' : False,
                 'v' : False }
+
+    # Index 4 - Either 'I' or 'E' or 'G'
+    # TODO : Verify that there is no difference between I and E in the 
+    #   instructions available.
+    # G = IMAFD + Zifencei
+
+    # Check for 'g' which indicates the multiple extensions need to be included
+    if isa[4].lower() == 'g':
+        all_instrs.update(convert_csv_to_dict('m', keys))
+        history['m'] = True
+        all_instrs.update(convert_csv_to_dict('a', keys))
+        history['a'] = True
+        all_instrs.update(convert_csv_to_dict('f', keys))
+        history['f'] = True
+        all_instrs.update(convert_csv_to_dict('d', keys))
+        history['d'] = True
  
+    # Iterate through the remaining characters
     for index in range(5, len(isa)):
-        extension = isa[index].lower()
+        extension = isa[index].lower() # Force lower-case
         # Possible base extensions : MAFCPV
-        # Possible combinations : CD, CF (so far)
         if (history[extension]): # Extension already detected, ignore
             continue
         else: # New extension, check for combinations
-            all_instrs.update(convert_csv_to_dict(isa[index]))
-            history[isa[index]] = True
-            if(extension == 'c'):
-                if(history['f']):
-                    all_instrs.update(convert_csv_to_dict('cf'))
-            elif(extension == 'f'):
-                if(history['c']):
-                    all_instrs.update(convert_csv_to_dict('cf'))
-        # Expand upon with more combinations as we make them
+            # Add current extension to dictionary and update history
+            all_instrs.update(convert_csv_to_dict(extension, keys))
+            history[extension] = True
 
-    # TODO : Consider extensions such as the bit manip ones which won't be 
-    #   represented by just single characters.
+            # -- History checking, dependent on the isa string having the
+            #   instruction in order --
+
+            # Specific cases for instruction inclusion
+            if extension == 'd':
+                # d implies the inclusion of f which may or may not be stated
+                all_instrs.update(convert_csv_to_dict('f', keys))
+                history['f'] = True
+            elif extension == 'c':
+                if history['f']:
+                    all_instrs.update(convert_csv_to_dict('fc', keys))
+                if history['d']:
+                    all_instrs.update(convert_csv_to_dict('dc', keys))
+            # Expand upon with more combinations as we make them
+
     return all_instrs
 
 # Function to take in a CSV file and convert it into the desired dictionary format
@@ -74,10 +97,3 @@ def convert_csv_to_dict(isa, key=None):
                 test_dict[row["Insn"]] = sub_dict
 
     return test_dict
-
-def main():
-    dict_test = convert_csv_to_dict("cd", ["Ld", "St"])
-    print(dict_test)
-
-if __name__ == "__main__":
-    main()
