@@ -5,15 +5,13 @@
 #   per register type.
 
 import argparse
-from cProfile import label
 import json
-from re import S
 import matplotlib.pyplot as plt
 
 # Input argument parsing (to detect the input filepath)
 parser = argparse.ArgumentParser()
-parser.add_argument("--filedump", help="Filepath/name for the dictionary files")
-args = parser.parse_args() # Filepath argument stored in args.filedump
+parser.add_argument("-j", "--jsondump", help="Filepath/name for input JSON files")
+args = parser.parse_args()
 
 # Function used to take a general counter list in and plot bar columns
 def display_general_barchart(name, counter_list):
@@ -97,7 +95,7 @@ def imm_distribution_plot(off, branch_off, shift, arith):
 
 def main():
     # Read in the associated lists and store in the data dictionary
-    with open('scripts/reg_accesses/test-rs.txt', 'r') as dump:
+    with open(args.jsondump, 'r') as dump:
         data = json.load(dump)
 
     # Visualise distribution of immediates (What the immediates are used for)
