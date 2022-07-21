@@ -9,8 +9,9 @@
 
 # Example to guide use:
 # Run the command : python3 scripts/common/display/column.py \
-#                   -j=<optional json file path> \
-#                   < scripts/example-printf.trc
+#                   -j=<input json file path> \
+#                   -p=<profile for plot axis names> \
+#                   -i=<output image file>
 #   while in the base directory
 
 import matplotlib.pyplot as plt
@@ -19,18 +20,21 @@ import argparse
 
 # Input argument parsing
 parser = argparse.ArgumentParser()
-parser.add_argument("-j", "--jsondump", help="Filepath/name for output JSON files")
+parser.add_argument("-j", "--jsondump", help="Filepath/name for input JSON files")
 parser.add_argument("-p", "--profile", help="Display profile, choose from: \
-    insn_pairs, insn_patterns or leave empty for default title/axis names")
-parser.add_argument("-f", "--filepath", help="Filepath/name for the saved figure")
+    insn_pairs, insn_patterns or leave empty for default title/axis names. Add your \
+    own options by setting up a profile in the column.py script")
+parser.add_argument("-i", "--img", help="Filepath/name for the output figure")
 args = parser.parse_args()
 
 def plot_bar(data_pairs):
     pairs = [x[0] for x in data_pairs]
     counters = [x[1] for x in data_pairs]
+    plt.figure(figsize=(10, 10))
     plt.bar(range(len(data_pairs)), counters)
     plt.xticks(range(len(data_pairs)), pairs)
     plt.xticks(rotation=45)
+    # plt.bar(figsize=(10, 10))
 
     # Profiles
     if args.profile == "insn_pairs":
@@ -46,7 +50,7 @@ def plot_bar(data_pairs):
         plt.xlabel("Independent Variable")
         plt.ylabel("Magnitude")
 
-    plt.savefig(args.filepath)
+    plt.savefig(args.img)
 
 def main():
     with open(args.jsondump, 'r') as dump:

@@ -9,6 +9,7 @@
 # Example to guide use:
 # Run the command : python3 scripts/common/display/heatmap.py \
 #                   -j=<input json file> \
+#                   -p=<profile for plot axis names> \
 #                   -i=<output figure filename>
 #   while in the base directory
 
