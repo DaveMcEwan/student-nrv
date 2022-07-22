@@ -37,16 +37,6 @@ parser.add_argument("--isa", help="RISC-V ISA string")
 parser.add_argument("--jsondump", help="Filepath/name for the JSON files")
 args = parser.parse_args() # ISA argument stored in args.isa
 
-# Function to take in the reg lists and form the desired dictionary format
-def convert_reg(isa_part):
-    dict_base = {}
-    with open("isa/reg/rv32i.reg", 'r') as reg_file: # TODO : Adjust so this is no longer hard-coded
-        for line in reg_file:
-            sub_dict = dict_base[line.strip()] = {}
-            sub_dict["rs"] = sub_dict["rd"] = 0
-
-    return dict_base
-
 # Helper function that checks if an item is in the input dictionary and increments
 #   if it is or creates a key if it doesn't exist
 def append_to_counter_dict(dict, insn_name):
@@ -292,8 +282,9 @@ def track_regs(instr_trace, all_instrs, all_regs):
     result["arith"] = sorted_arith
     result["all_regs"] = all_regs
 
-    with open(args.jsondump, 'w') as dump:
-        dump.write(json.dumps(result))
+    if args.jsondump:
+        with open(args.jsondump, 'w') as dump:
+            dump.write(json.dumps(result))
 
     # Formatted printing so that users can access the raw data
     print("Most common immediate values: "
@@ -312,7 +303,8 @@ def main():
     instr_trace = sys.stdin.readlines()
     # Keys we want to access from the .isa files
     key_list = ["Type", "Format"]
-    track_regs(instr_trace, check_isa(args.isa, key_list), convert_reg("t"))
+    all_instrs, regs = check_isa(args.isa, key_list, reg=True)
+    track_regs(instr_trace, all_instrs, regs)
 
 if __name__ == "__main__":
     main()

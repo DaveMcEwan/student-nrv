@@ -11,11 +11,12 @@ import csv
 #   the key given by the string in it.
 #   - if is a list of strings, returns a dictionary where each instruction key has a
 #   sub dictionary where we can access multiple keys from the CSV file from.
-def check_isa(isa, keys=None):    
+def check_isa(isa, keys=None, reg=False):
     all_instrs = {}
+    reg_dict = {}
 
     #           ----- Parsing the XLEN value -----
-    XLEN = int(isa[2:4])
+    XLEN = isa[2:4]
     # Include the instructions from the isa of that word length
     all_instrs.update(convert_csv_to_dict("rv"+str(XLEN), keys))
     
@@ -36,13 +37,21 @@ def check_isa(isa, keys=None):
     # G = IMAFD + Zifencei
 
     # Check for 'g' which indicates the multiple extensions need to be included
-    if isa[4].lower() == 'g':
+    if isa[4].lower() == 'i':
+        reg_dict.update(convert_reg("rv"+XLEN+"i"))
+    elif isa[4].lower() == "e":
+        reg_dict.update(convert_reg("rv"+XLEN+"e"))
+    elif isa[4].lower() == 'g':
         all_instrs.update(convert_csv_to_dict('m', keys))
         history['m'] = True
+
         all_instrs.update(convert_csv_to_dict('a', keys))
         history['a'] = True
+
         all_instrs.update(convert_csv_to_dict('f', keys))
         history['f'] = True
+        reg_dict.update(convert_reg("f"))
+
         all_instrs.update(convert_csv_to_dict('d', keys))
         history['d'] = True
  
@@ -72,7 +81,10 @@ def check_isa(isa, keys=None):
                     all_instrs.update(convert_csv_to_dict('dc', keys))
             # Expand upon with more combinations as we make them
 
-    return all_instrs
+    if reg:
+        return all_instrs, reg_dict
+    else:
+        return all_instrs
 
 # Function to take in a CSV file and convert it into the desired dictionary format
 def convert_csv_to_dict(isa, key=None):
@@ -97,3 +109,13 @@ def convert_csv_to_dict(isa, key=None):
                 test_dict[row["Insn"]] = sub_dict
 
     return test_dict
+
+# Function to take in the reg lists and form the desired dictionary format
+def convert_reg(isa_part):
+    dict_base = {}
+    with open("isa/reg/"+isa_part+".reg", 'r') as reg_file:
+        for line in reg_file:
+            sub_dict = dict_base[line.strip()] = {}
+            sub_dict["rs"] = sub_dict["rd"] = 0
+
+    return dict_base
