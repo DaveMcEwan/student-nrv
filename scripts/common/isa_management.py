@@ -90,7 +90,7 @@ def convert_csv_to_dict(isa, key=None):
                     sub_dict[key] = row[key]
                 test_dict[row["Insn"]] = sub_dict
             elif isinstance(key, str):
-                test_dict[row["Insn"]] = int(row[key])
+                test_dict[row["Insn"]] = row[key]
             elif isinstance(key, list):
                 for k in key:
                     sub_dict[k] = row[k]
