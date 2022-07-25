@@ -10,7 +10,7 @@ default: assembly
 default: disassembly
 default: histogram
 default: extract_main
-default: bw_streams
+default: bandwidth
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -86,11 +86,6 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 # main.trc - Section of instruction trace between where we enter and leave main
 MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
 
-# Byte streams - used for bandwidth calculations
-# TODO - Check if needed
-LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
-STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
-
 # 	Directory names - Formed by adjusting the TRACES list
 # nproc - subdirectories used to contain the files associated with
 #	simulating with a specific number of processors
@@ -99,6 +94,10 @@ NPROC_DIRS 	:= $(dir ${TRACES})
 FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
 # common - subdirectory used to store temporary files used by multiple test cases
 COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
+# figures - subdirectories for any figures
+FIGURE_DIRS := $(addsuffix figures/,${NPROC_DIRS})
+LOAD_BW_FIG_DIRS  := $(addsuffix bw/load/,${FIGURE_DIRS})
+STORE_BW_FIG_DIRS := $(addsuffix bw/store/,${FIGURE_DIRS})
 
 #	Target files
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
@@ -109,6 +108,57 @@ ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
 DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 # (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
+
+#		--------------------- BANDWIDTH TARGETS ---------------------
+# Raw bandwidth streams
+LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
+STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
+
+#	Figures and corresponding average traces
+LOAD_BW_2		  := $(addsuffix load-bw-2.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_2_TRC	  := $(addsuffix load-bw-2.trc,${LOAD_BW_FIG_DIRS})
+
+LOAD_BW_4		  := $(addsuffix load-bw-4.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_4_TRC	  := $(addsuffix load-bw-4.trc,${LOAD_BW_FIG_DIRS})
+
+LOAD_BW_8		  := $(addsuffix load-bw-8.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_8_TRC	  := $(addsuffix load-bw-8.trc,${LOAD_BW_FIG_DIRS})
+
+LOAD_BW_16	  	  := $(addsuffix load-bw-16.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_16_TRC	  := $(addsuffix load-bw-16.trc,${LOAD_BW_FIG_DIRS})
+
+LOAD_BW_32	  	  := $(addsuffix load-bw-32.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_32_TRC	  := $(addsuffix load-bw-32.trc,${LOAD_BW_FIG_DIRS})
+
+LOAD_BW_64	  	  := $(addsuffix load-bw-64.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_64_TRC	  := $(addsuffix load-bw-64.trc,${LOAD_BW_FIG_DIRS})
+
+LOAD_BW_128	  	  := $(addsuffix load-bw-128.pdf,${LOAD_BW_FIG_DIRS})
+LOAD_BW_128_TRC	  := $(addsuffix load-bw-128.trc,${LOAD_BW_FIG_DIRS})
+
+STORE_BW_2		  := $(addsuffix store-bw-2.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_2_TRC	  := $(addsuffix store-bw-2.trc,${STORE_BW_FIG_DIRS})
+
+STORE_BW_4		  := $(addsuffix store-bw-4.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_4_TRC	  := $(addsuffix store-bw-4.trc,${STORE_BW_FIG_DIRS})
+
+STORE_BW_8		  := $(addsuffix store-bw-8.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_8_TRC	  := $(addsuffix store-bw-8.trc,${STORE_BW_FIG_DIRS})
+
+STORE_BW_16	  	  := $(addsuffix store-bw-16.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_16_TRC	  := $(addsuffix store-bw-16.trc,${STORE_BW_FIG_DIRS})
+
+STORE_BW_32	  	  := $(addsuffix store-bw-32.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_32_TRC	  := $(addsuffix store-bw-32.trc,${STORE_BW_FIG_DIRS})
+
+STORE_BW_64	  	  := $(addsuffix store-bw-64.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_64_TRC	  := $(addsuffix store-bw-64.trc,${STORE_BW_FIG_DIRS})
+
+STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_FIG_DIRS})
+STORE_BW_128_TRC  := $(addsuffix store-bw-128.trc,${STORE_BW_FIG_DIRS})
+
+#		----------------- PATTERN DETECTION TARGETS -----------------
+
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
@@ -141,7 +191,11 @@ SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size
 
 SPIKE 	= ${RISCV}/bin/spike
 
-# 	Default compiler flags
+# ------------- Variables definitions based on the recipe target -------------
+# $@ - Recipe target
+WINDOW_SIZE = $(word 3, $(subst -, ,$(basename $(notdir $@))))
+
+# -------------------------- Default compiler flags --------------------------
 # More information : https://gcc.gnu.org/onlinedocs/gcc/RISC-V-Options.html
 
 # ISA Configuration
@@ -232,17 +286,31 @@ TRACES:
 # Targets to form all needed directories in one to avoid having multiple separate 
 #	mkdir commands that flood the command line.
 
+# .PHONY: NPROC_DIRS
 NPROC_DIRS:
 	@echo Making all NPROC_DIRS
 	mkdir -p ${NPROC_DIRS}
 
+# .PHONY: FNAME_DIRS
 FNAME_DIRS:
 	@echo Making all FNAME_DIRS
 	mkdir -p ${FNAME_DIRS}
 
+# .PHONY: COMMON_DIRS
 COMMON_DIRS:
 	@echo Making all COMMON_DIRS
 	mkdir -p ${COMMON_DIRS}
+
+# .PHONY: FIGURE_DIRS
+FIGURE_DIRS:
+	@echo Making all FIGURE_DIRS
+	mkdir -p ${FIGURE_DIRS}
+
+LOAD_BW_FIG_DIRS:
+	mkdir -p ${LOAD_BW_FIG_DIRS}
+
+STORE_BW_FIG_DIRS:
+	mkdir -p ${STORE_BW_FIG_DIRS}
 
 # ----------------------------------- BUILD -----------------------------------
 # Compilation targets (executables and object files)
@@ -329,21 +397,145 @@ ${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc
 ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
-# TODO : Expand bandwidth recipes so that it produces the display scripts too
-.PHONY: bw_streams
-bw_streams: produce_load_bw produce_store_bw
+# ------------------------ INSTRUCTION TRACE ANALYSIS -------------------------
+# 			------------------------ BANDWIDTH -------------------------
+# make bandwidth - forms all possible figures
+.PHONY: display_bandwidth
+display_bandwidth: display_load_bw_all display_store_bw_all
 
-.PHONY: produce_load_bw
-produce_load_bw: ${LOAD_BYTE_STREAMS}
+# 			   ----------------------- LOAD ------------------------
+# Display all
+.PHONY: display_load_bw_all
+display_load_bw_all	: $(LOAD_BW_2) $(LOAD_BW_4) $(LOAD_BW_8) \
+${LOAD_BW_16} ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128}
 
+# Individual load targets for displaying
+.PHONY: display_load_bw_2 display_load_bw_4 display_load_bw_8
+.PHONY: display_load_bw_16 display_load_bw_32 display_load_bw_64
+.PHONY: display_load_bw_128
+display_load_bw_2 	: ${LOAD_BW_2}
+display_load_bw_4 	: ${LOAD_BW_4}
+display_load_bw_8 	: ${LOAD_BW_8}
+display_load_bw_16 	: ${LOAD_BW_16}
+display_load_bw_32 	: ${LOAD_BW_32}
+display_load_bw_64 	: ${LOAD_BW_64}
+display_load_bw_128 : ${LOAD_BW_128}
+
+# Grouped load targets
+.PHONY: display_load_bw_small display_load_bw_medium display_load_bw_load
+display_load_bw_small  : ${LOAD_BW_2} ${LOAD_BW_4}
+display_load_bw_medium : ${LOAD_BW_8} ${LOAD_BW_16} ${LOAD_BW_32}
+display_load_bw_large  : ${LOAD_BW_64} ${LOAD_BW_128}
+
+.SECONDEXPANSION:
+${LOAD_BW_2} ${LOAD_BW_4} ${LOAD_BW_8} ${LOAD_BW_16} \
+${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
+	: $$(addsuffix .trc, $$(basename $$@))
+
+	python3 scripts/common/display_line_graph.py -p=mov_avg -f=True \
+	-n=$(WINDOW_SIZE) --img=$@ < $<
+
+# Individual load targets for average trace calculations
+.PHONY: avg_load_bw_2 avg_load_bw_4 avg_load_bw_8
+.PHONY: avg_load_bw_16 avg_load_bw_32 avg_load_bw_64
+.PHONY: avg_load_bw_128
+avg_load_bw_2 	: ${LOAD_BW_2_TRC}
+avg_load_bw_4 	: ${LOAD_BW_4_TRC}
+avg_load_bw_8 	: ${LOAD_BW_8_TRC}
+avg_load_bw_16 	: ${LOAD_BW_16_TRC}
+avg_load_bw_32 	: ${LOAD_BW_32_TRC}
+avg_load_bw_64 	: ${LOAD_BW_64_TRC}
+avg_load_bw_128 : ${LOAD_BW_128_TRC}
+
+# Grouped load targets
+.PHONY: avg_load_bw_small avg_load_bw_medium avg_load_bw_load
+avg_load_bw_small  : ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC}
+avg_load_bw_medium : ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC}
+avg_load_bw_large  : ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
+
+.SECONDEXPANSION:
+${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} \
+${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
+	&: $$(addsuffix ../../../load-byte-stream.trc, $$(dir $$@))
+	
+	python3 scripts/common/moving_average.py -n=$(WINDOW_SIZE) \
+	< $< > $@
+
+# 			  ------------------------ STORE ------------------------
+# Display all
+.PHONY: display_store_bw_all
+display_store_bw_all	: $(STORE_BW_2) $(STORE_BW_4) $(STORE_BW_8) \
+${STORE_BW_16} ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128}
+
+# Individual store targets for displaying
+.PHONY: display_store_bw_2 display_store_bw_4 display_store_bw_8
+.PHONY: display_store_bw_16 display_store_bw_32 display_store_bw_64
+.PHONY: display_store_bw_128
+display_store_bw_2 	 : ${STORE_BW_2}
+display_store_bw_4 	 : ${STORE_BW_4}
+display_store_bw_8 	 : ${STORE_BW_8}
+display_store_bw_16  : ${STORE_BW_16}
+display_store_bw_32  : ${STORE_BW_32}
+display_store_bw_64  : ${STORE_BW_64}
+display_store_bw_128 : ${STORE_BW_128}
+
+# Grouped store targets
+.PHONY: display_store_bw_small display_store_bw_medium display_store_bw_store
+display_store_bw_small  : ${STORE_BW_2} ${STORE_BW_4}
+display_store_bw_medium : ${STORE_BW_8} ${STORE_BW_16} ${STORE_BW_32}
+display_store_bw_large  : ${STORE_BW_64} ${STORE_BW_128}
+
+.SECONDEXPANSION:
+${STORE_BW_2} ${STORE_BW_4} ${STORE_BW_8} ${STORE_BW_16} \
+${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
+	: $$(addsuffix .trc, $$(basename $$@))
+
+	python3 scripts/common/display_line_graph.py -p=mov_avg -f=True \
+	-n=$(WINDOW_SIZE) --img=$@ < $<
+
+# Individual store targets for average trace calculations
+.PHONY: avg_store_bw_2 avg_store_bw_4 avg_store_bw_8
+.PHONY: avg_store_bw_16 avg_store_bw_32 avg_store_bw_64
+.PHONY: avg_store_bw_128
+avg_store_bw_2 	 : ${STORE_BW_2_TRC}
+avg_store_bw_4 	 : ${STORE_BW_4_TRC}
+avg_store_bw_8 	 : ${STORE_BW_8_TRC}
+avg_store_bw_16  : ${STORE_BW_16_TRC}
+avg_store_bw_32  : ${STORE_BW_32_TRC}
+avg_store_bw_64  : ${STORE_BW_64_TRC}
+avg_store_bw_128 : ${STORE_BW_128_TRC}
+
+# Grouped store targets
+.PHONY: avg_store_bw_small avg_store_bw_medium avg_store_bw_store
+avg_store_bw_small  : ${STORE_BW_2_TRC} ${STORE_BW_4_TRC}
+avg_store_bw_medium : ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} ${STORE_BW_32_TRC}
+avg_store_bw_large  : ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
+
+.SECONDEXPANSION:
+${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} \
+${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} \
+	: $$(addsuffix ../../../store-byte-stream.trc, $$(dir $$@))
+	
+	python3 scripts/common/moving_average.py -n=$(WINDOW_SIZE) \
+	< $< > $@
+
+# 	Recipes for solely producing the bandwidth streams
+# make bandwidth_streams - forms all possible bandwidth stream traces
+.PHONY: bandwidth_streams
+bandwidth: load_bw_streams store_bw_streams
+
+.PHONY: load_bw_streams
+load_bw_streams: ${LOAD_BYTE_STREAMS}
 ${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc
 	python3 scripts/bandwidth/load_bw/load_bw.py --isa=$(ISA) < $< > $@
 
-.PHONY: produce_store_bw
-produce_store_bw: ${STORE_BYTE_STREAMS}
-
+.PHONY: store_bw_streams
+store_bw_streams: ${STORE_BYTE_STREAMS}
 ${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc
 	python3 scripts/bandwidth/store_bw/store_bw.py --isa=$(ISA) < $< > $@
+
+# 			-------------- INSTRUCTION PATTERN DETECTION ---------------
+# .PHONY: 
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
