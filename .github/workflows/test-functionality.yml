@@ -1,0 +1,27 @@
+name: test-functionality
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup
+        uses: embecosm/riscv-toolchain
+        # Find out how to include the device tree compiler package
+        run: |
+          echo Hello
+        # ./build-tools.sh
+        # ./build-spike.sh
+      
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Report Versions
+        run: |
+          spike
+      
+      - name: Build all
+        run: |
+          make
