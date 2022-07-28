@@ -17,6 +17,8 @@ def check_isa(isa, keys=None, reg=False):
 
     #           ----- Parsing the XLEN value -----
     XLEN = isa[2:4]
+    assert XLEN in ["32", "64"], "XLEN can only be 32 or 64"
+
     # Include the instructions from the isa of that word length
     all_instrs.update(convert_csv_to_dict("rv"+str(XLEN), keys))
     
@@ -35,6 +37,10 @@ def check_isa(isa, keys=None, reg=False):
     # TODO : Verify that there is no difference between I and E in the 
     #   instructions available.
     # G = IMAFD + Zifencei
+
+    char_four = isa[4].lower()
+    assert char_four in ["i", "e", "g"], \
+        "The 5th character can only be either i, e or g"
 
     # Check for 'g' which indicates the multiple extensions need to be included
     if isa[4].lower() == 'i':
