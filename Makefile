@@ -11,6 +11,7 @@ default: disassembly
 default: histogram
 default: extract_main
 default: display_bandwidth
+default: instruction_sequences
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -117,7 +118,7 @@ STORE_BW_DIRS := $(addsuffix store/,${BW_DIRS})
 LOAD_BYTE_STREAMS  := $(addsuffix load-byte-stream.trc,${LOAD_BW_DIRS})
 STORE_BYTE_STREAMS := $(addsuffix store-byte-stream.trc,${STORE_BW_DIRS})
 
-#	Figures and corresponding average traces
+# Figures and corresponding average traces
 LOAD_BW_2		  := $(addsuffix load-bw-2.pdf,${LOAD_BW_DIRS})
 LOAD_BW_2_TRC	  := $(addsuffix load-bw-2.trc,${LOAD_BW_DIRS})
 
@@ -128,7 +129,7 @@ LOAD_BW_8		  := $(addsuffix load-bw-8.pdf,${LOAD_BW_DIRS})
 LOAD_BW_8_TRC	  := $(addsuffix load-bw-8.trc,${LOAD_BW_DIRS})
 
 LOAD_BW_16	  	  := $(addsuffix load-bw-16.pdf,${LOAD_BW_DIRS})
-LOAD_BW_16_TRC	  := $(subst .pdf,.trc,${LOAD_BW_16})
+LOAD_BW_16_TRC	  := $(addsuffix load-bw-16.trc,${LOAD_BW_DIRS})
 
 LOAD_BW_32	  	  := $(addsuffix load-bw-32.pdf,${LOAD_BW_DIRS})
 LOAD_BW_32_TRC	  := $(addsuffix load-bw-32.trc,${LOAD_BW_DIRS})
@@ -161,7 +162,14 @@ STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_DIRS})
 STORE_BW_128_TRC  := $(addsuffix store-bw-128.trc,${STORE_BW_DIRS})
 
 #		----------------- PATTERN DETECTION TARGETS -----------------
+# Directories
+INSN_SEQ_DIRS 			:= $(addsuffix insn_sequences/,${RESULT_DIRS})
+RAW_INSN_SEQ_DIRS 		:= $(addsuffix raw/,${INSN_SEQ_DIRS})
+FILTERED_INSN_SEQ_DIRS 	:= $(addsuffix filtered/,${INSN_SEQ_DIRS})
 
+# Target files
+FILTERED_INSN_PAIRS		:= $(addsuffix pairs.txt,${FILTERED_INSN_SEQ_DIRS})
+FILTERED_INSN_PATTERNS	:= $(addsuffix patterns.txt,${FILTERED_INSN_SEQ_DIRS})
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
@@ -316,6 +324,14 @@ LOAD_BW_DIRS:
 STORE_BW_DIRS:
 	@echo Making all STORE_BW_DIRS
 	mkdir -p ${STORE_BW_DIRS}
+
+RAW_INSN_SEQ_DIRS:
+	@echo Making all RAW_INSN_SEQ_DIRS
+	mkdir -p ${RAW_INSN_SEQ_DIRS}
+
+FILTERED_INSN_SEQ_DIRS:
+	@echo Making all FILTERED_INSN_SEQ_DIRS
+	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
 
 # ----------------------------------- BUILD -----------------------------------
 # Compilation targets (executables and object files)
@@ -557,7 +573,36 @@ ${BUILD_DIR}/%/results/bw/store/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc |
 	python3 scripts/common/key_stream.py -k=St --isa=$(ISA) < $< > $@
 
 # 			-------------- INSTRUCTION PATTERN DETECTION ---------------
-# .PHONY: 
+.PHONY: instruction_sequences
+instruction_sequences : instruction_pairs instruction_patterns
+
+.PHONY: instruction_pairs
+instruction_pairs : ${FILTERED_INSN_PAIRS}
+
+${BUILD_DIR}/%/results/insn_sequences/filtered/pairs.txt \
+${BUILD_DIR}/%/results/insn_sequences/filtered/pairs.JSON \
+${BUILD_DIR}/%/results/insn_sequences/raw/pairs.txt \
+${BUILD_DIR}/%/results/insn_sequences/raw/pairs.JSON : \
+	${BUILD_DIR}/%/main.trc | FILTERED_INSN_SEQ_DIRS RAW_INSN_SEQ_DIRS
+
+	python3 scripts/insn_patterns/insn_pairs.py \
+	-j=$(subst .txt,.JSON,$@) \
+	-r=$(abspath $(addsuffix ../raw/pairs,$(dir $@))) \
+	< $< > $@
+
+.PHONY: instruction_patterns
+instruction_patterns : ${FILTERED_INSN_PATTERNS}
+
+${BUILD_DIR}/%/results/insn_sequences/filtered/patterns.txt \
+${BUILD_DIR}/%/results/insn_sequences/filtered/patterns.JSON \
+${BUILD_DIR}/%/results/insn_sequences/raw/patterns.txt \
+${BUILD_DIR}/%/results/insn_sequences/raw/patterns.JSON : \
+	${BUILD_DIR}/%/main.trc | FILTERED_INSN_SEQ_DIRS RAW_INSN_SEQ_DIRS
+
+	python3 scripts/insn_patterns/insn_patterns.py \
+	-j=$(subst .txt,.JSON,$@) \
+	-r=$(abspath $(addsuffix ../raw/patterns,$(dir $@))) \
+	< $< > $@
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
