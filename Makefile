@@ -139,7 +139,7 @@ CC = riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
 OBJDUMP = ${RISCV}/bin/riscv$(XLEN)-unknown-elf-objdump
 SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size 
 
-SPIKE 	= ${RISCV}/bin/spike
+SPIKE 	= spike
 
 # 	Default compiler flags
 # More information : https://gcc.gnu.org/onlinedocs/gcc/RISC-V-Options.html
