@@ -1,0 +1,64 @@
+name: embecosm-riscv
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Install DTC
+        run: |
+          sudo apt install device-tree-compiler
+
+      # Select compiler from
+      # https://www.embecosm.com/resources/tool-chain-downloads/
+      - name: RISC-V Compiler Setup
+        run: |
+          sudo apt -y install wget
+          sudo apt -y install tar
+          wget --no-check-certificate https://buildbot.embecosm.com/job/riscv32-gcc-centos7-release/13/artifact/riscv32-embecosm-centos7-gcc12.1.0.tar.gz
+          tar -xf riscv32-embecosm-centos7-gcc12.1.0.tar.gz
+
+          RISCV_COMPILER="riscv32-embecosm-centos7-gcc12.1.0"
+          export PATH="$PWD/$RISCV_COMPILER/bin:$PATH"
+          export RISCV="$PWD/$RISCV_COMPILER"
+
+          riscv32-unknown-elf-gcc -v
+      
+      - name: Configure Spike
+        run: |
+          git clone https://github.com/riscv-software-src/riscv-isa-sim
+          mkdir riscv-isa-sim/build
+          cd riscv-isa-sim/build
+          ../configure --prefix=$RISCV --enable-histogram
+          make
+          sudo make install
+
+      - name: Install Python
+        run: |
+          sudo apt-get -y install python3.6
+
+      - name: Report Versions
+        run: |
+          dtc -v
+
+          RISCV_COMPILER="riscv32-embecosm-centos7-gcc12.1.0"
+          export PATH="$PWD/$RISCV_COMPILER/bin:$PATH"
+          export RISCV="$PWD/$RISCV_COMPILER"
+
+          riscv32-unknown-elf-gcc -v
+          make -v
+          spike --help
+          python3 --version
+
+      - name: Build all
+        run: |
+          RISCV_COMPILER="riscv32-embecosm-centos7-gcc12.1.0"
+          export PATH="$PWD/$RISCV_COMPILER/bin:$PATH"
+          export RISCV="$PWD/$RISCV_COMPILER"
+
+          make
