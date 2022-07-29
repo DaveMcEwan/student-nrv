@@ -432,7 +432,7 @@ ${LOAD_BW_2} ${LOAD_BW_4} ${LOAD_BW_8} ${LOAD_BW_16} \
 ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
 	: $$(addsuffix .trc, $$(basename $$@))
 
-	python3 scripts/common/display_line_graph.py -p=mov_avg -f=True \
+	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
 
 # Individual load targets for average trace calculations
@@ -490,7 +490,7 @@ ${STORE_BW_2} ${STORE_BW_4} ${STORE_BW_8} ${STORE_BW_16} \
 ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
 	: $$(addsuffix .trc, $$(basename $$@))
 
-	python3 scripts/common/display_line_graph.py -p=mov_avg -f=True \
+	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
 
 # Individual store targets for average trace calculations

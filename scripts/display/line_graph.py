@@ -7,7 +7,7 @@
 #       e.g. scripts/bandwidth/load_bw/example-load-bytes.png
 
 # Example to guide use:
-# Run the command : python3 scripts/common/display_line_graph.py \
+# Run the command : python3 scripts/display/line_graph.py \
 #       --img=scripts/bandwidth/load_bw/example-load-bytes.pdf \
 #       -p=mov_avg \
 #       -n=4 \

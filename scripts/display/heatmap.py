@@ -7,7 +7,7 @@
 # Output : Heatmap figure saved in the filepath provided by the --img flag
 
 # Example to guide use:
-# Run the command : python3 scripts/common/display/heatmap.py \
+# Run the command : python3 scripts/display/heatmap.py \
 #                   -j=<input json file> \
 #                   -p=<profile for plot axis names> \
 #                   -i=<output figure filename>

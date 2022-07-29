@@ -8,7 +8,7 @@
 #   file path provided by the --filepath python argument.
 
 # Example to guide use:
-# Run the command : python3 scripts/common/display/column.py \
+# Run the command : python3 scripts/display/column.py \
 #                   -j=<input json file path> \
 #                   -p=<profile for plot axis names> \
 #                   -i=<output image file>
