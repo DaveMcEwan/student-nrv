@@ -10,7 +10,7 @@ default: assembly
 default: disassembly
 default: histogram
 default: extract_main
-default: bandwidth_streams
+default: display_bandwidth
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -95,9 +95,7 @@ FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
 # common - subdirectory used to store temporary files used by multiple test cases
 COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
 # figures - subdirectories for any figures
-FIGURE_DIRS := $(addsuffix figures/,${NPROC_DIRS})
-LOAD_BW_FIG_DIRS  := $(addsuffix bw/load/,${FIGURE_DIRS})
-STORE_BW_FIG_DIRS := $(addsuffix bw/store/,${FIGURE_DIRS})
+RESULT_DIRS := $(addsuffix results/,${NPROC_DIRS})
 
 #	Target files
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
@@ -110,52 +108,57 @@ DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
 #		--------------------- BANDWIDTH TARGETS ---------------------
+# Directories
+BW_DIRS 	  := $(addsuffix bw/,${RESULT_DIRS})
+LOAD_BW_DIRS  := $(addsuffix load/,${BW_DIRS})
+STORE_BW_DIRS := $(addsuffix store/,${BW_DIRS})
+
 # Raw bandwidth streams
-LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
-STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
+LOAD_BYTE_STREAMS  := $(addsuffix load-byte-stream.trc,${LOAD_BW_DIRS})
+STORE_BYTE_STREAMS := $(addsuffix store-byte-stream.trc,${STORE_BW_DIRS})
 
 #	Figures and corresponding average traces
-LOAD_BW_2		  := $(addsuffix load-bw-2.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_2_TRC	  := $(addsuffix load-bw-2.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_2		  := $(addsuffix load-bw-2.pdf,${LOAD_BW_DIRS})
+LOAD_BW_2_TRC	  := $(addsuffix load-bw-2.trc,${LOAD_BW_DIRS})
 
-LOAD_BW_4		  := $(addsuffix load-bw-4.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_4_TRC	  := $(addsuffix load-bw-4.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_4		  := $(addsuffix load-bw-4.pdf,${LOAD_BW_DIRS})
+LOAD_BW_4_TRC	  := $(addsuffix load-bw-4.trc,${LOAD_BW_DIRS})
 
-LOAD_BW_8		  := $(addsuffix load-bw-8.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_8_TRC	  := $(addsuffix load-bw-8.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_8		  := $(addsuffix load-bw-8.pdf,${LOAD_BW_DIRS})
+LOAD_BW_8_TRC	  := $(addsuffix load-bw-8.trc,${LOAD_BW_DIRS})
 
-LOAD_BW_16	  	  := $(addsuffix load-bw-16.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_16_TRC	  := $(addsuffix load-bw-16.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_16	  	  := $(addsuffix load-bw-16.pdf,${LOAD_BW_DIRS})
+LOAD_BW_16_TRC	  := $(addsuffix load-bw-16.trc,${LOAD_BW_DIRS})
 
-LOAD_BW_32	  	  := $(addsuffix load-bw-32.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_32_TRC	  := $(addsuffix load-bw-32.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_32	  	  := $(addsuffix load-bw-32.pdf,${LOAD_BW_DIRS})
+LOAD_BW_32_TRC	  := $(addsuffix load-bw-32.trc,${LOAD_BW_DIRS})
 
-LOAD_BW_64	  	  := $(addsuffix load-bw-64.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_64_TRC	  := $(addsuffix load-bw-64.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_64	  	  := $(addsuffix load-bw-64.pdf,${LOAD_BW_DIRS})
+LOAD_BW_64_TRC	  := $(addsuffix load-bw-64.trc,${LOAD_BW_DIRS})
 
-LOAD_BW_128	  	  := $(addsuffix load-bw-128.pdf,${LOAD_BW_FIG_DIRS})
-LOAD_BW_128_TRC	  := $(addsuffix load-bw-128.trc,${LOAD_BW_FIG_DIRS})
+LOAD_BW_128	  	  := $(addsuffix load-bw-128.pdf,${LOAD_BW_DIRS})
+LOAD_BW_128_TRC	  := $(addsuffix load-bw-128.trc,${LOAD_BW_DIRS})
 
-STORE_BW_2		  := $(addsuffix store-bw-2.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_2_TRC	  := $(addsuffix store-bw-2.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_2		  := $(addsuffix store-bw-2.pdf,${STORE_BW_DIRS})
+STORE_BW_2_TRC	  := $(addsuffix store-bw-2.trc,${STORE_BW_DIRS})
 
-STORE_BW_4		  := $(addsuffix store-bw-4.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_4_TRC	  := $(addsuffix store-bw-4.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_4		  := $(addsuffix store-bw-4.pdf,${STORE_BW_DIRS})
+STORE_BW_4_TRC	  := $(addsuffix store-bw-4.trc,${STORE_BW_DIRS})
 
-STORE_BW_8		  := $(addsuffix store-bw-8.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_8_TRC	  := $(addsuffix store-bw-8.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_8		  := $(addsuffix store-bw-8.pdf,${STORE_BW_DIRS})
+STORE_BW_8_TRC	  := $(addsuffix store-bw-8.trc,${STORE_BW_DIRS})
 
-STORE_BW_16	  	  := $(addsuffix store-bw-16.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_16_TRC	  := $(addsuffix store-bw-16.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_16	  	  := $(addsuffix store-bw-16.pdf,${STORE_BW_DIRS})
+STORE_BW_16_TRC	  := $(addsuffix store-bw-16.trc,${STORE_BW_DIRS})
 
-STORE_BW_32	  	  := $(addsuffix store-bw-32.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_32_TRC	  := $(addsuffix store-bw-32.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_32	  	  := $(addsuffix store-bw-32.pdf,${STORE_BW_DIRS})
+STORE_BW_32_TRC	  := $(addsuffix store-bw-32.trc,${STORE_BW_DIRS})
 
-STORE_BW_64	  	  := $(addsuffix store-bw-64.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_64_TRC	  := $(addsuffix store-bw-64.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_64	  	  := $(addsuffix store-bw-64.pdf,${STORE_BW_DIRS})
+STORE_BW_64_TRC	  := $(addsuffix store-bw-64.trc,${STORE_BW_DIRS})
 
-STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_FIG_DIRS})
-STORE_BW_128_TRC  := $(addsuffix store-bw-128.trc,${STORE_BW_FIG_DIRS})
+STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_DIRS})
+STORE_BW_128_TRC  := $(addsuffix store-bw-128.trc,${STORE_BW_DIRS})
 
 #		----------------- PATTERN DETECTION TARGETS -----------------
 
@@ -301,16 +304,18 @@ COMMON_DIRS:
 	@echo Making all COMMON_DIRS
 	mkdir -p ${COMMON_DIRS}
 
-# .PHONY: FIGURE_DIRS
-FIGURE_DIRS:
-	@echo Making all FIGURE_DIRS
-	mkdir -p ${FIGURE_DIRS}
+# .PHONY: RESULT_DIRS
+RESULT_DIRS:
+	@echo Making all RESULT_DIRS
+	mkdir -p ${RESULT_DIRS}
 
-LOAD_BW_FIG_DIRS:
-	mkdir -p ${LOAD_BW_FIG_DIRS}
+LOAD_BW_DIRS:
+	@echo Making all LOAD_BW_DIRS
+	mkdir -p ${LOAD_BW_DIRS}
 
-STORE_BW_FIG_DIRS:
-	mkdir -p ${STORE_BW_FIG_DIRS}
+STORE_BW_DIRS:
+	@echo Making all STORE_BW_DIRS
+	mkdir -p ${STORE_BW_DIRS}
 
 # ----------------------------------- BUILD -----------------------------------
 # Compilation targets (executables and object files)
@@ -337,6 +342,9 @@ ${BUILD_DIR}/%/testcase.elf: \
 ${BUILD_DIR}/%/testcase.o: \
 	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
 	| FNAME_DIRS
+
+	echo "Forming object file"
+	echo $@
 
 	${CC} $(CFLAGS) ${INCLUDES} -c $^ -o $@
 
@@ -427,10 +435,12 @@ display_load_bw_small  : ${LOAD_BW_2} ${LOAD_BW_4}
 display_load_bw_medium : ${LOAD_BW_8} ${LOAD_BW_16} ${LOAD_BW_32}
 display_load_bw_large  : ${LOAD_BW_64} ${LOAD_BW_128}
 
+# Target 	 :	bw/load/load-bw-n.pdf = LOAD_BW_N
+# Dependency :  bw/load/load-bw-n.trc = LOAD_BW_N_TRC
 .SECONDEXPANSION:
 ${LOAD_BW_2} ${LOAD_BW_4} ${LOAD_BW_8} ${LOAD_BW_16} \
 ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
-	: $$(addsuffix .trc, $$(basename $$@))
+	: $$(addsuffix .trc, $$(basename $$@)) | LOAD_BW_DIRS
 
 	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
@@ -453,12 +463,15 @@ avg_load_bw_small  : ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC}
 avg_load_bw_medium : ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC}
 avg_load_bw_large  : ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
 
+# Target 	 :	bw/load/load-bw-n.trc = LOAD_BW_N_TRC
+# Dependency :  bw/load/load-byte-stream.trc = LOAD_BYTE_STREAMS
+
 .SECONDEXPANSION:
 ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} \
 ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
-	&: $$(addsuffix ../../../load-byte-stream.trc, $$(dir $$@))
+	: $$(addsuffix load-byte-stream.trc, $$(dir $$@)) | LOAD_BW_DIRS
 	
-	python3 scripts/common/moving_average.py -n=$(WINDOW_SIZE) \
+	python3 scripts/common/moving_average.py -f=True -n=$(WINDOW_SIZE) \
 	< $< > $@
 
 # 			  ------------------------ STORE ------------------------
@@ -488,7 +501,7 @@ display_store_bw_large  : ${STORE_BW_64} ${STORE_BW_128}
 .SECONDEXPANSION:
 ${STORE_BW_2} ${STORE_BW_4} ${STORE_BW_8} ${STORE_BW_16} \
 ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
-	: $$(addsuffix .trc, $$(basename $$@))
+	: $$(addsuffix .trc, $$(basename $$@)) | STORE_BW_DIRS
 
 	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
@@ -514,9 +527,9 @@ avg_store_bw_large  : ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
 .SECONDEXPANSION:
 ${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} \
 ${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} \
-	: $$(addsuffix ../../../store-byte-stream.trc, $$(dir $$@))
+	: $$(addsuffix store-byte-stream.trc, $$(dir $$@)) | STORE_BW_DIRS
 	
-	python3 scripts/common/moving_average.py -n=$(WINDOW_SIZE) \
+	python3 scripts/common/moving_average.py -f=True -n=$(WINDOW_SIZE) \
 	< $< > $@
 
 # 	Recipes for solely producing the bandwidth streams
@@ -526,12 +539,13 @@ bandwidth_streams: load_bw_streams store_bw_streams
 
 .PHONY: load_bw_streams
 load_bw_streams: ${LOAD_BYTE_STREAMS}
-${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc
+${BUILD_DIR}/%/results/bw/load/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc | LOAD_BW_DIRS
+	echo "Load BW streams"
 	python3 scripts/common/key_stream.py -k=Ld --isa=$(ISA) < $< > $@
 
 .PHONY: store_bw_streams
 store_bw_streams: ${STORE_BYTE_STREAMS}
-${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc
+${BUILD_DIR}/%/results/bw/store/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc | STORE_BW_DIRS
 	python3 scripts/common/key_stream.py -k=St --isa=$(ISA) < $< > $@
 
 # 			-------------- INSTRUCTION PATTERN DETECTION ---------------
