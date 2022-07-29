@@ -10,7 +10,7 @@ default: assembly
 default: disassembly
 default: histogram
 default: extract_main
-default: bandwidth
+default: bandwidth_streams
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -522,17 +522,17 @@ ${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} \
 # 	Recipes for solely producing the bandwidth streams
 # make bandwidth_streams - forms all possible bandwidth stream traces
 .PHONY: bandwidth_streams
-bandwidth: load_bw_streams store_bw_streams
+bandwidth_streams: load_bw_streams store_bw_streams
 
 .PHONY: load_bw_streams
 load_bw_streams: ${LOAD_BYTE_STREAMS}
 ${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc
-	python3 scripts/bandwidth/load_bw/load_bw.py --isa=$(ISA) < $< > $@
+	python3 scripts/common/key_stream.py -k=Ld --isa=$(ISA) < $< > $@
 
 .PHONY: store_bw_streams
 store_bw_streams: ${STORE_BYTE_STREAMS}
 ${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc
-	python3 scripts/bandwidth/store_bw/store_bw.py --isa=$(ISA) < $< > $@
+	python3 scripts/common/key_stream.py -k=St --isa=$(ISA) < $< > $@
 
 # 			-------------- INSTRUCTION PATTERN DETECTION ---------------
 # .PHONY: 
