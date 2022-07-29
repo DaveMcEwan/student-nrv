@@ -128,7 +128,7 @@ LOAD_BW_8		  := $(addsuffix load-bw-8.pdf,${LOAD_BW_DIRS})
 LOAD_BW_8_TRC	  := $(addsuffix load-bw-8.trc,${LOAD_BW_DIRS})
 
 LOAD_BW_16	  	  := $(addsuffix load-bw-16.pdf,${LOAD_BW_DIRS})
-LOAD_BW_16_TRC	  := $(addsuffix load-bw-16.trc,${LOAD_BW_DIRS})
+LOAD_BW_16_TRC	  := $(subst .pdf,.trc,${LOAD_BW_16})
 
 LOAD_BW_32	  	  := $(addsuffix load-bw-32.pdf,${LOAD_BW_DIRS})
 LOAD_BW_32_TRC	  := $(addsuffix load-bw-32.trc,${LOAD_BW_DIRS})
@@ -409,7 +409,8 @@ ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 # 			------------------------ BANDWIDTH -------------------------
 # make bandwidth - forms all possible figures
 .PHONY: display_bandwidth
-display_bandwidth: display_load_bw_all display_store_bw_all
+display_bandwidth: avg_load_bw_all avg_store_bw_all \
+display_load_bw_all display_store_bw_all
 
 # 			   ----------------------- LOAD ------------------------
 # Display all
@@ -440,10 +441,14 @@ display_load_bw_large  : ${LOAD_BW_64} ${LOAD_BW_128}
 .SECONDEXPANSION:
 ${LOAD_BW_2} ${LOAD_BW_4} ${LOAD_BW_8} ${LOAD_BW_16} \
 ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
-	: $$(addsuffix .trc, $$(basename $$@)) | LOAD_BW_DIRS
+	: $$(subst .pdf,.trc,$$@) | LOAD_BW_DIRS
 
 	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
+
+.PHONY: avg_load_bw_all
+avg_load_bw_all : ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} \
+${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
 
 # Individual load targets for average trace calculations
 .PHONY: avg_load_bw_2 avg_load_bw_4 avg_load_bw_8
@@ -465,7 +470,6 @@ avg_load_bw_large  : ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
 
 # Target 	 :	bw/load/load-bw-n.trc = LOAD_BW_N_TRC
 # Dependency :  bw/load/load-byte-stream.trc = LOAD_BYTE_STREAMS
-
 .SECONDEXPANSION:
 ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} \
 ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
@@ -505,6 +509,10 @@ ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
 
 	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
+
+.PHONY: avg_store_bw_all
+avg_store_bw_all : ${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} \
+${STORE_BW_16_TRC} ${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
 
 # Individual store targets for average trace calculations
 .PHONY: avg_store_bw_2 avg_store_bw_4 avg_store_bw_8

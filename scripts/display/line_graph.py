@@ -48,12 +48,7 @@ def display_graph(avg_stream):
     plt.savefig(args.img)
 
 def main():
-    if args.ignore_first:
-        # Ignore the first line as this is just information added to the trace file
-        input = sys.stdin.readlines()[1:]
-    else:
-        input = sys.stdin.readlines()
-    
+    input = sys.stdin.readlines()[1:] if args.ignore_first else sys.stdin.readlines()
     display_graph(input)
 
 if __name__ == "__main__":
