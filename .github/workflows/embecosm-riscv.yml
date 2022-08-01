@@ -42,7 +42,6 @@ jobs:
         run: |
           sudo apt-get -y install python3.6
 
-          sudo apt-get install python-scipy
           pip install scipy
 
           pip install numpy
