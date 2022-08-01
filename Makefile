@@ -205,7 +205,8 @@ CC = riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
 OBJDUMP = ${RISCV}/bin/riscv$(XLEN)-unknown-elf-objdump
 SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size 
 
-SPIKE 	= ${RISCV}/bin/spike
+# SPIKE 	= ${RISCV}/bin/spike
+SPIKE	= spike
 
 # ------------- Variables definitions based on the recipe target -------------
 # $@ - Recipe target
@@ -622,7 +623,7 @@ ${BUILD_DIR}/%/results/insn_sequences/raw/pairs.JSON : \
 	${BUILD_DIR}/%/main.trc | FILTERED_INSN_SEQ_DIRS RAW_INSN_SEQ_DIRS
 
 	python3 scripts/insn_patterns/insn_pairs.py \
-	-j=$@ \
+	-j=$(subst .txt,.JSON,$@) \
 	-r=$(abspath $(addsuffix ../raw/pairs,$(dir $@))) \
 	< $< > $(subst .JSON,.txt,$@)
 
@@ -636,7 +637,7 @@ ${BUILD_DIR}/%/results/insn_sequences/raw/patterns.JSON : \
 	${BUILD_DIR}/%/main.trc | FILTERED_INSN_SEQ_DIRS RAW_INSN_SEQ_DIRS
 
 	python3 scripts/insn_patterns/insn_patterns.py \
-	-j=$@ \
+	-j=$(subst .txt,.JSON,$@) \
 	-r=$(abspath $(addsuffix ../raw/patterns,$(dir $@))) \
 	< $< > $(subst .JSON,.txt,$@)
 
