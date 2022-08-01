@@ -33,8 +33,7 @@ def plot_bar(data_pairs):
     plt.figure(figsize=(10, 10))
     plt.bar(range(len(data_pairs)), counters)
     plt.xticks(range(len(data_pairs)), pairs)
-    plt.xticks(rotation=45)
-    # plt.bar(figsize=(10, 10))
+    # plt.xticks(rotation=45)
 
     # Profiles
     if args.profile == "insn_pairs":

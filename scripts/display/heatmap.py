@@ -94,7 +94,7 @@ def plot_heatmap(arr, y_labels, x_labels):
     plt.savefig(args.img)
 
 def main():
-    with open(args.jsondump) as dump:
+    with open(args.jsondump, 'r') as dump:
         data = json.load(dump)
     
     arr, x_labels, y_labels = parse_pairs_heatmap(data, 16)
