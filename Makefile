@@ -10,7 +10,7 @@ default: assembly
 default: disassembly
 default: histogram
 default: extract_main
-default: bw_streams
+default: bandwidth_streams
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -86,11 +86,6 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 # main.trc - Section of instruction trace between where we enter and leave main
 MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
 
-# Byte streams - used for bandwidth calculations
-# TODO - Check if needed
-LOAD_BYTE_STREAMS  := $(subst testcase,load-byte-stream,${TRACES})
-STORE_BYTE_STREAMS := $(subst testcase,store-byte-stream,${TRACES})
-
 # 	Directory names - Formed by adjusting the TRACES list
 # nproc - subdirectories used to contain the files associated with
 #	simulating with a specific number of processors
@@ -99,6 +94,8 @@ NPROC_DIRS 	:= $(dir ${TRACES})
 FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
 # common - subdirectory used to store temporary files used by multiple test cases
 COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
+# figures - subdirectories for any figures
+RESULT_DIRS := $(addsuffix results/,${NPROC_DIRS})
 
 #	Target files
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
@@ -109,6 +106,16 @@ ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
 DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 # (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
+
+#		--------------------- BANDWIDTH TARGETS ---------------------
+# Directories
+BW_DIRS 	  := $(addsuffix bw/,${RESULT_DIRS})
+LOAD_BW_DIRS  := $(addsuffix load/,${BW_DIRS})
+STORE_BW_DIRS := $(addsuffix store/,${BW_DIRS})
+
+# Raw bandwidth streams
+LOAD_BYTE_STREAMS  := $(addsuffix load-byte-stream.trc,${LOAD_BW_DIRS})
+STORE_BYTE_STREAMS := $(addsuffix store-byte-stream.trc,${STORE_BW_DIRS})
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
@@ -244,6 +251,18 @@ COMMON_DIRS:
 	@echo Making all COMMON_DIRS
 	mkdir -p ${COMMON_DIRS}
 
+RESULT_DIRS:
+	@echo Making all RESULT_DIRS
+	mkdir -p ${RESULT_DIRS}
+
+LOAD_BW_DIRS:
+	@echo Making all LOAD_BW_DIRS
+	mkdir -p ${LOAD_BW_DIRS}
+
+STORE_BW_DIRS:
+	@echo Making all STORE_BW_DIRS
+	mkdir -p ${STORE_BW_DIRS}
+
 # ----------------------------------- BUILD -----------------------------------
 # Compilation targets (executables and object files)
 .PHONY: build
@@ -330,20 +349,21 @@ ${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
 # TODO : Expand bandwidth recipes so that it produces the display scripts too
-.PHONY: bw_streams
-bw_streams: produce_load_bw produce_store_bw
+# 	Recipes for solely producing the bandwidth streams
+# make bandwidth_streams - forms all possible bandwidth stream traces
+.PHONY: bandwidth_streams
+bandwidth_streams: load_bw_streams store_bw_streams
 
-.PHONY: produce_load_bw
-produce_load_bw: ${LOAD_BYTE_STREAMS}
+.PHONY: load_bw_streams
+load_bw_streams: ${LOAD_BYTE_STREAMS}
+${BUILD_DIR}/%/results/bw/load/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc | LOAD_BW_DIRS
+	echo "Load BW streams"
+	python3 scripts/common/key_stream.py -k=Ld --isa=$(ISA) < $< > $@
 
-${BUILD_DIR}/%/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc
-	python3 scripts/bandwidth/load_bw/load_bw.py --isa=$(ISA) < $< > $@
-
-.PHONY: produce_store_bw
-produce_store_bw: ${STORE_BYTE_STREAMS}
-
-${BUILD_DIR}/%/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc
-	python3 scripts/bandwidth/store_bw/store_bw.py --isa=$(ISA) < $< > $@
+.PHONY: store_bw_streams
+store_bw_streams: ${STORE_BYTE_STREAMS}
+${BUILD_DIR}/%/results/bw/store/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc | STORE_BW_DIRS
+	python3 scripts/common/key_stream.py -k=St --isa=$(ISA) < $< > $@
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
