@@ -2,12 +2,12 @@
 # Measure how frequently specific registers are accessed
 
 # Input : Trimmed down instruction trace
-# Output : - JSON file containing the lists and dictionaries needed to make the display graphs from
-#          - Formatted lists containing the counters associated with each register
+# Output : - JSON file containing the dictionaries storing counters regarding
+#   how often each register is used as what. Used to make the display graphs.
 
 # Example to guide use:
 # Run the command : python3 scripts/reg_accesses/reg_accesses.py \
-#   --isa=rv32ic < scripts/example.trc
+#   --isa=rv32ic -j=<json dump> < scripts/example.trc
 #   while in the base directory
 
 import sys
