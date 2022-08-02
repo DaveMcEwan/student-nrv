@@ -1,22 +1,33 @@
-# Identifying the most common sequences where registers are read from 
-#   (rs) or written to (rd)
+# Identifying the most common sequences (in the form of patterns) where 
+#   registers are read from (rs) or written to (rd)
 
 # Input : Trimmed down instruction trace
-# Output : TODO
+# Output : - stdout : Filtered list of the most common register sequences
+#   (both rs and rd)
+#          - JSON file containing the filtered results stored in the file
+#   given by the -j command flag
+#          - JSON and txt file containing the raw results, file name given
+#   by -r command flag
 
 # Example to guide use:
-# Run the command : python3 scripts/reg_patterns/reg_only_pairs.py < scripts/example.trc
+# Run the command : python3 scripts/reg_patterns/reg_patterns.py \
+#       --isa=rv32ic -j=<JSON file output path> \
+#       -r=<Raw files output path>
+#       < scripts/example-printf.trc
 #   while in the base directory
 
 import sys
-import csv
 import argparse
 import os
+import json
 
 # Input argument parsing (to detect the ISA)
 parser = argparse.ArgumentParser()
-parser.add_argument("--isa", help="RISC-V ISA string")
-parser.add_argument("--filedump", help="Filepath/name for the dictionary files")
+parser.add_argument("-i", "--isa", help="RISC-V ISA string")
+parser.add_argument("-j", "--jsondump", help="Filepath/name for output JSON files")
+parser.add_argument("-r", "--rawdump", help="Filepath/name (without a file extension) \
+    for the formatted unfiltered output patterns (prior to identifying the local \
+    maxima). Two files are produced from this : a readable .txt file and a .JSON file")
 args = parser.parse_args() # ISA argument stored in args.isa
 
 # Adding the parent directory to the python file path to 
@@ -26,126 +37,185 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 
 from common.isa_management import check_isa
+from common.helper_functions import append_to_counter_dict
 from common.reg_functions import parse_instruction
+from common.pattern_detection import local_maxima, print_pairs
 
-# Helper function that checks if an item is in the input dictionary and increments
-#   if it is or creates a key if it doesn't exist
-def append_to_counter_dict(dict, insn_name):
-    if(insn_name in dict):
-        dict[insn_name] += 1
-    else:
-        dict[insn_name] = 1
+def track_rs_patterns(instr_trace, window_size, all_instrs):
+    rs_pattern_dict = {}
+    window = []
 
-# Iterate through instruction trace and count the most frequent register access pairs
-def track_rs_pairs(instr_trace, all_instrs):
-    pairs_dict = {}
-    # String variable forming the base which we'll make the keys from
-    key_string = ""
+    counter = 0
+    # Initialise window
+    while len(window) != window_size:
+        line = instr_trace[counter]
+        rs1, rs2, _ = parse_instruction(line.split()[4:], all_instrs)
 
-    for line in instr_trace:
-        rs1, rs2, _ = parse_instruction(line.split()[2:], all_instrs)
-        # print("rs1 :"+rs1+", rs2:"+rs2)
-
-        if rs1: # Variable present in rs1, append to pairing
-            if key_string: # If the pair string already has a reg in it
-                key_string += rs1
-                # print("Adding single: "+rs1)
-                append_to_counter_dict(pairs_dict, key_string)
-                # print("Adding: "+key_string)
-                key_string = ""
-            else: # key_string is empty
-                # print("Starting with: "+rs1)
-                key_string += rs1 + ", "
-            if rs2: # Check if rs2 is present (only if rs1 is present)
-                if key_string:
-                    key_string += rs2
-                    # print("Adding single: "+rs2)
-                    append_to_counter_dict(pairs_dict, key_string)
-                    # print("Adding: "+key_string)
-                    key_string = ""
-                else:
-                    key_string += rs2 + ", "
-                    # print("Starting with: "+rs2)
-    
-    # Sort based on the corresponding counter values
-    sorted_pairs = sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
-    return sorted_pairs
-
-def track_rd_pairs(instr_trace, all_instrs):
-    pairs_dict = {}
-    # String variable forming the base which we'll make the keys from
-    key_string = ""
-
-    for line in instr_trace:
-        _, _, rd = parse_instruction(line.split()[2:], all_instrs)
-        # print(rd)
-        if rd:
-            if key_string:
-                key_string += rd
-                append_to_counter_dict(pairs_dict, key_string)
-                key_string = ""
-            else:
-                key_string += rd + ", "
-
-    return sorted(pairs_dict.items(), key=lambda x: x[1], reverse=True)
-
-def track_rs_rd_pairs(instr_trace, all_instrs):
-    rs_dict = {}
-    rd_dict = {}
-    # String variable forming the base which we'll make the keys from
-    rs_string = ""
-    rd_string = ""
-
-    for line in instr_trace:
-        rs1, rs2, rd = parse_instruction(line.split()[2:], all_instrs)
-        # print("rs1 :"+rs1+", rs2:"+rs2+", rd:"+rd)
         if rs1:
-            if rs_string:
-                rs_string += rs1
-                append_to_counter_dict(rs_dict, rs_string)
-                rs_string = ""
-            else:
-                rs_string += rs1 + ", "
+            window.append(rs1)
             if rs2:
-                if rs_string:
-                    rs_string += rs2
-                    append_to_counter_dict(rs_dict, rs_string)
-                    rs_string = ""
+                if len(window) == window_size: # Full window
+                    append_to_counter_dict(rs_pattern_dict, tuple(window))
+                    window.append(rs2)
+                    window = window[1:]
+                    append_to_counter_dict(rs_pattern_dict, tuple(window))
                 else:
-                    rs_string += rs2 + ", "
-        if rd:
-            if rd_string:
-                rd_string += rd
-                append_to_counter_dict(rd_dict, rd_string)
-                rd_string = ""
-            else:
-                rd_string += rd + ", "
+                    window.append(rs2)
+                    if len(window) == window_size:
+                        append_to_counter_dict(rs_pattern_dict, tuple(window))
 
-    sorted_rs = sorted(rs_dict.items(), key=lambda x: x[1], reverse=True)
-    sorted_rd = sorted(rd_dict.items(), key=lambda x: x[1], reverse=True)
+        counter += 1
+
+    for line in instr_trace[counter:]:
+        rs1, rs2, _ = parse_instruction(line.split()[4:], all_instrs)
+
+        if rs1:
+            window.append(rs1)
+            window = window[1:]
+            append_to_counter_dict(rs_pattern_dict, tuple(window))
+            if rs2:
+                window.append(rs2)
+                window = window[1:]
+                append_to_counter_dict(rs_pattern_dict, tuple(window))
+
+    return sorted(rs_pattern_dict.items(), key=lambda x: x[1], reverse=True)
+
+def track_rd_patterns(instr_trace, window_size, all_instrs):
+    rd_pattern_dict = {}
+    window = []
+
+    counter = 0
+    # Initialise window
+    while len(window) != window_size:
+        line = instr_trace[counter]
+        _, _, rd = parse_instruction(line.split()[4:], all_instrs)
+
+        if rd:
+            window.append(rd)
+            if len(window) == window_size: # Full window
+                append_to_counter_dict(rd_pattern_dict, tuple(window))
+
+        counter += 1
+
+    for line in instr_trace[counter:]:
+        _, _, rd = parse_instruction(line.split()[4:], all_instrs)
+
+        if rd:
+            window.append(rd)
+            window = window[1:]
+            append_to_counter_dict(rd_pattern_dict, tuple(window))
+
+    return sorted(rd_pattern_dict.items(), key=lambda x: x[1], reverse=True)
+
+def track_rs_rd_patterns(instr_trace, window_size, all_instrs):
+    rs_pattern_dict, rd_pattern_dict = {}, {}
+    rs_window, rd_window = [], []
+
+    counter = 0
+    # Fill initial windows
+    while len(rs_window) != window_size or len(rd_window) != window_size:
+        line = instr_trace[counter]
+        rs1, rs2, rd = parse_instruction(line.split()[4:], all_instrs)
+        # Debugging
+        # print(line)
+        # if rs1: 
+        #     print("rs1:"+rs1)
+        # if rs2:
+        #     print("rs2:"+rs2)
+        # if rd:
+        #     print("rd:"+rd)
+        # print()
+
+        if rs1:
+            rs_window.append(rs1)
+            if len(rs_window) == window_size + 1:
+                rs_window = rs_window[1:]
+            if len(rs_window) == window_size:
+                append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+            
+            if rs2:
+                rs_window.append(rs2)
+                if len(rs_window) == window_size + 1:
+                    rs_window = rs_window[1:]
+                if len(rs_window) == window_size:
+                    append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+
+        if rd:
+            rd_window.append(rd)
+            if len(rd_window) == window_size + 1:
+                rd_window = rd_window[1:]
+            if len(rd_window) == window_size:
+                append_to_counter_dict(rd_pattern_dict, tuple(rd_window))
+
+        counter += 1
+
+    for line in instr_trace[counter:]:
+        rs1, rs2, rd = parse_instruction(line.split()[4:], all_instrs)
+
+        if rs1:
+            rs_window.append(rs1)
+            rs_window = rs_window[1:]
+            append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+            if rs2:
+                rs_window.append(rs2)
+                rs_window = rs_window[1:]
+                append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+        if rd:
+            rd_window.append(rd)
+            rd_window = rd_window[1:]
+            append_to_counter_dict(rd_pattern_dict, tuple(rd_window))
+
+    sorted_rs = sorted(rs_pattern_dict.items(), key=lambda x: x[1], reverse=True)
+    sorted_rd = sorted(rd_pattern_dict.items(), key=lambda x: x[1], reverse=True)
 
     return sorted_rs, sorted_rd
 
-# Takes in the list of tuples and prints out the pairs and counters in a readable way
-def print_pairs(sorted_pairs):
-    print("Printing pairs")
-    for pair in sorted_pairs:
-        print(f'{f"{pair[0]}":<32} {str(pair[1])}')
-
 def main():
+    minimum_count = 1
+    diff_threshold = 5
+
     all_instrs = check_isa(args.isa)
     # Read in the stdin and store in the instr_trace variable
     instr_trace = sys.stdin.readlines()
-    # print("Most common RS pairs")
-    # print_pairs(track_rs_pairs(instr_trace, all_instrs))
-    # print("Most common RD pairs")
-    # print_pairs(track_rd_pairs(instr_trace, all_instrs))
+    rs_patterns_dict = {}
+    rd_patterns_dict = {}
 
-    rs_list, rd_list = track_rs_rd_pairs(instr_trace, all_instrs)
-    print("Most common RS pairs")
-    print_pairs(rs_list)
-    print("Most common RD pairs")
-    print_pairs(rd_list)
+    for i in range(3, 8):
+        rs, rd = track_rs_rd_patterns(instr_trace, i, all_instrs)
+        
+        rs_patterns_dict.update(rs)
+        rd_patterns_dict.update(rd)
+        # rs_patterns_dict.update(track_rs_patterns(instr_trace, i, all_instrs))
+        # rd_patterns_dict.update(track_rd_patterns(instr_trace, i, all_instrs))
+
+    if args.rawdump:
+        raw_result = {}
+        raw_rs_patterns = sorted(rs_patterns_dict.items(), key=lambda x: x[1], reverse=True)
+        raw_rd_patterns = sorted(rd_patterns_dict.items(), key=lambda x: x[1], reverse=True)
+        raw_result["raw_rs"] = raw_rs_patterns
+        raw_result["raw_rd"] = raw_rd_patterns
+        with open(args.rawdump+".JSON", 'w') as dump:
+            dump.write(json.dumps(raw_result))
+        with open(args.rawdump+".txt", 'w') as dump:
+            dump.write("Raw most common patterns of 'rs' accesses")
+            dump.write(print_pairs(raw_rs_patterns, dump))
+            dump.write("Raw most common patterns of 'rd' accesses")
+            dump.write(print_pairs(raw_rd_patterns, dump))
+
+    filtered_result = {}
+    filtered_rs_patterns = local_maxima(rs_patterns_dict, minimum_count, diff_threshold, False)
+    filtered_rd_patterns = local_maxima(rd_patterns_dict, minimum_count, diff_threshold, False)
+    filtered_result["filtered_rs"] = filtered_rs_patterns
+    filtered_result["filtered_rd"] = filtered_rd_patterns
+
+    if args.jsondump:
+        with open(args.jsondump, 'w') as dump:
+            dump.write(json.dumps(filtered_result))
+
+    print("Most common rs access sequences")
+    print_pairs(filtered_rs_patterns)
+    print("Most common rd writing sequences")
+    print_pairs(filtered_rd_patterns)
 
 if __name__ == "__main__":
     main()
