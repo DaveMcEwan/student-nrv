@@ -2,12 +2,15 @@
 #   registers are read from (rs) or written to (rd) individually or both
 
 # Input : Trimmed down instruction trace
-# Output : TODO
+# Output : - stdout : Formatted output containing every pair and a counter detailing how
+#   often each pair has occurred.
+#          - JSON output : Dictionary containing the most common rs and rd pairs to be
+#   used in a display script.
 
 # Example to guide use:
 # Run the command : python3 scripts/reg_sequences/reg_pairs.py \
 #                   --isa=rv32ic
-#                   --filedump=
+#                   --jsondump=<file to place any json output files>
 #  < scripts/example.trc
 #   while in the base directory
 
