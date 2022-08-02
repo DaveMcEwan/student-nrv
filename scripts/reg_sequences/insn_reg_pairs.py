@@ -1,11 +1,15 @@
 # Identifying the most common sequences (in the form of pairs) of instructions and
-#   register combinations
+#   register combinations. Contains multiple functions which can refine our search
+#   for specific combinations.
 
 # Input : Trimmed down instruction trace
-# Output : TODO
+# Output : - stdout : Formatted list detailing all pairs along with counters.
+#          - JSON output : JSON file to then use the data in a display script.
 
 # Example to guide use:
-# Run the command : python3 scripts/reg_sequences/insn_reg_pairs.py < scripts/example.trc
+# Run the command : python3 scripts/reg_sequences/insn_reg_pairs.py \
+# -j=<Output JSON file dump>
+# < scripts/example.trc
 #   while in the base directory
 
 import sys
@@ -248,7 +252,7 @@ def main():
     instr_trace = sys.stdin.readlines()
 
     result = track_all_insn_pairs(instr_trace, all_instrs)
-    
+
     if args.jsondump:
         with open(args.jsondump, 'w') as dump:
             dump.write(json.dumps(result))
