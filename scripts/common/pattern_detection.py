@@ -47,4 +47,4 @@ def visualise_indices(sorted_patterns, dy, diff_threshold):
 # Takes in the list of tuples and prints out the pairs and counters in a readable way
 def print_pairs(sorted_pairs, stream=sys.stdout):
     for pair in sorted_pairs:
-        print(f'{f"{pair[0]}":<48} {str(pair[1])}', file=stream)
+        print(f'{f"{pair[0]}":<48} : {str(pair[1])}', file=stream)

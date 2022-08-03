@@ -55,14 +55,14 @@ def track_rs_patterns(instr_trace, window_size, all_instrs):
             window.append(rs1)
             if rs2:
                 if len(window) == window_size: # Full window
-                    append_to_counter_dict(rs_pattern_dict, tuple(window))
+                    append_to_counter_dict(rs_pattern_dict, ', '.join(window))
                     window.append(rs2)
                     window = window[1:]
-                    append_to_counter_dict(rs_pattern_dict, tuple(window))
+                    append_to_counter_dict(rs_pattern_dict, ', '.join(window))
                 else:
                     window.append(rs2)
                     if len(window) == window_size:
-                        append_to_counter_dict(rs_pattern_dict, tuple(window))
+                        append_to_counter_dict(rs_pattern_dict, ', '.join(window))
 
         counter += 1
 
@@ -72,11 +72,11 @@ def track_rs_patterns(instr_trace, window_size, all_instrs):
         if rs1:
             window.append(rs1)
             window = window[1:]
-            append_to_counter_dict(rs_pattern_dict, tuple(window))
+            append_to_counter_dict(rs_pattern_dict, ', '.join(window))
             if rs2:
                 window.append(rs2)
                 window = window[1:]
-                append_to_counter_dict(rs_pattern_dict, tuple(window))
+                append_to_counter_dict(rs_pattern_dict, ', '.join(window))
 
     return sorted(rs_pattern_dict.items(), key=lambda x: x[1], reverse=True)
 
@@ -93,7 +93,7 @@ def track_rd_patterns(instr_trace, window_size, all_instrs):
         if rd:
             window.append(rd)
             if len(window) == window_size: # Full window
-                append_to_counter_dict(rd_pattern_dict, tuple(window))
+                append_to_counter_dict(rd_pattern_dict, ', '.join(window))
 
         counter += 1
 
@@ -103,7 +103,7 @@ def track_rd_patterns(instr_trace, window_size, all_instrs):
         if rd:
             window.append(rd)
             window = window[1:]
-            append_to_counter_dict(rd_pattern_dict, tuple(window))
+            append_to_counter_dict(rd_pattern_dict, ', '.join(window))
 
     return sorted(rd_pattern_dict.items(), key=lambda x: x[1], reverse=True)
 
@@ -131,21 +131,21 @@ def track_rs_rd_patterns(instr_trace, window_size, all_instrs):
             if len(rs_window) == window_size + 1:
                 rs_window = rs_window[1:]
             if len(rs_window) == window_size:
-                append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+                append_to_counter_dict(rs_pattern_dict, ', '.join(rs_window))
             
             if rs2:
                 rs_window.append(rs2)
                 if len(rs_window) == window_size + 1:
                     rs_window = rs_window[1:]
                 if len(rs_window) == window_size:
-                    append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+                    append_to_counter_dict(rs_pattern_dict, ', '.join(rs_window))
 
         if rd:
             rd_window.append(rd)
             if len(rd_window) == window_size + 1:
                 rd_window = rd_window[1:]
             if len(rd_window) == window_size:
-                append_to_counter_dict(rd_pattern_dict, tuple(rd_window))
+                append_to_counter_dict(rd_pattern_dict, ', '.join(rd_window))
 
         counter += 1
 
@@ -155,15 +155,15 @@ def track_rs_rd_patterns(instr_trace, window_size, all_instrs):
         if rs1:
             rs_window.append(rs1)
             rs_window = rs_window[1:]
-            append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+            append_to_counter_dict(rs_pattern_dict, ', '.join(rs_window))
             if rs2:
                 rs_window.append(rs2)
                 rs_window = rs_window[1:]
-                append_to_counter_dict(rs_pattern_dict, tuple(rs_window))
+                append_to_counter_dict(rs_pattern_dict, ', '.join(rs_window))
         if rd:
             rd_window.append(rd)
             rd_window = rd_window[1:]
-            append_to_counter_dict(rd_pattern_dict, tuple(rd_window))
+            append_to_counter_dict(rd_pattern_dict, ', '.join(rd_window))
 
     sorted_rs = sorted(rs_pattern_dict.items(), key=lambda x: x[1], reverse=True)
     sorted_rd = sorted(rd_pattern_dict.items(), key=lambda x: x[1], reverse=True)
@@ -198,9 +198,9 @@ def main():
             dump.write(json.dumps(raw_result))
         with open(args.rawdump+".txt", 'w') as dump:
             dump.write("Raw most common patterns of 'rs' accesses")
-            dump.write(print_pairs(raw_rs_patterns, dump))
+            dump.write(json.dumps(print_pairs(raw_rs_patterns, dump)))
             dump.write("Raw most common patterns of 'rd' accesses")
-            dump.write(print_pairs(raw_rd_patterns, dump))
+            dump.write(json.dumps(print_pairs(raw_rd_patterns, dump)))
 
     filtered_result = {}
     filtered_rs_patterns = local_maxima(rs_patterns_dict, minimum_count, diff_threshold, False)
