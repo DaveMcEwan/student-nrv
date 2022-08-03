@@ -33,6 +33,7 @@ def plot_bar(data_pairs):
     plt.figure(figsize=(10, 10))
     plt.bar(range(len(data_pairs)), counters)
     plt.xticks(range(len(data_pairs)), pairs)
+    # Use this line to rotate the xtick names if they overlap one another
     # plt.xticks(rotation=45)
 
     # Profiles

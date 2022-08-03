@@ -49,6 +49,10 @@ def check_isa(isa, keys=None, reg=False):
         reg_dict.update(convert_reg("rv"+XLEN+"e"))
     elif isa[4].lower() == 'g':
         pass
+        # Include the extensions included with 'g'. Currently commented out for
+        #   functionality purposes as the .isa files for these extensions have not
+        #   yet been made. Other code is commented for the same reason below this.
+
         # all_instrs.update(convert_csv_to_dict('m', keys))
         # history['m'] = True
 
