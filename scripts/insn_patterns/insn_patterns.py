@@ -28,6 +28,7 @@ sys.path.append(parent)
 
 # Function to calculate the local maxima among groups of values
 from common.pattern_detection import local_maxima, print_pairs
+from common.helper_functions import append_to_counter_dict
 
 # Input argument parsing
 parser = argparse.ArgumentParser()
@@ -58,12 +59,7 @@ def track_patterns(instr_trace, n):
         #   then acts as a key for the dictionary. Done so that the format matches
         #   that of the pair detection algorithm and because dictionaries can only
         #   take immutable types as keys
-        key_string = ', '.join(window)
-
-        if (key_string in patterns_dict):
-            patterns_dict[key_string] += 1
-        else:
-            patterns_dict[key_string] = 1
+        append_to_counter_dict(patterns_dict, ', '.join(window))
 
     # Returns a dictionary where each instruction pattern is associated with 
     #   their counter

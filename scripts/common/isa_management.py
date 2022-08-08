@@ -111,9 +111,11 @@ def convert_csv_to_dict(isa, key=None):
         for row in data:
             sub_dict = test_dict.get(row["Insn"], dict())
             if not key: # No key/key list given, form dictionary with all information
-                for key in row.keys():
-                    sub_dict[key] = row[key]
+                for column_key in row.keys():
+                    sub_dict[column_key] = row[column_key]
                 test_dict[row["Insn"]] = sub_dict
+                # print(row["Insn"])
+                # print(sub_dict)
             elif isinstance(key, str):
                 test_dict[row["Insn"]] = row[key]
             elif isinstance(key, list):
