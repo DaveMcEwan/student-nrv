@@ -25,6 +25,9 @@ endif
 SRC_DIR 		= ./src
 # /src/common - Contains shared files between inputs e.g. syscalls.c
 SRC_COMMON_DIR  = ./src/common
+# /src/ml-inputs - Contains directories used for code to be compiled for each
+#	ML input
+SRC_ML_DIR		= ./src/ml-inputs
 # /build - Constructed directory used to store outputs from recipes including
 #	executables, instruction traces, display pngs etc.
 BUILD_DIR 		= ./build
@@ -107,6 +110,27 @@ ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
 DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 # (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
+
+#			--------------------- ML TARGETS ---------------------
+ML_GEN_DIR		:=	${BUILD_DIR}/ml-gen
+#			------------------ PERSON DETECTION ------------------
+PD_GEN_DIR		:=	${ML_GEN_DIR}/person-detection
+PD_SRC_DIR		:= 	${SRC_ML_DIR}/person-detection
+
+# TFLITE MODELS
+PD_MODEL_TFL 	:= 	${PD_SRC_DIR}/person_detect.tflite
+PD_MODEL_CC		:= 	${PD_GEN_DIR}/person_detect_model_data.cc
+PD_MODEL_H		:=	${PD_GEN_DIR}/person_detect_model_data.h
+
+# IMAGE DATA
+PD_P_BMP		:= 	${PD_SRC_DIR}/testdata/person.bmp
+PD_P_BMP_CC		:=	${PD_GEN_DIR}/person_image_data.cc
+PD_P_BMP_H		:= 	${PD_GEN_DIR}/person_image_data.h
+
+PD_NP_BMP		:= 	${PD_SRC_DIR}/testdata/no_person.bmp
+PD_NP_BMP_CC	:=	${PD_GEN_DIR}/no_person_image_data.cc
+PD_NP_BMP_H		:= 	${PD_GEN_DIR}/no_person_image_data.h
+
 
 #		--------------------- BANDWIDTH TARGETS ---------------------
 # Directories
@@ -339,6 +363,33 @@ FILTERED_INSN_SEQ_DIRS:
 	@echo Making all FILTERED_INSN_SEQ_DIRS
 	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
 
+# -------------------------------- MODEL DATA --------------------------------
+
+# Ideas:
+#	- Follow same format as other instances where I used multiple recipes
+#	- Separate recipes to produce the .cc and .h files
+#	- Having variables assigned to all ML input's .cc and .h files -
+#	- Form the .bmp file input through secondary expansion.
+#	- Produced .cc and .h files are then stored in an ml-gen folder of the build/
+#	directory
+
+# MODEL DATA TARGETS (TFLITE)
+${PD_MODEL_CC} ${PD_MODEL_H} : ${PD_MODEL_TFL}
+	python3 tools/generate_cc_arrays.py $(dir $@) $<
+
+# IMAGE DATA TARGETS (BITMAPS)
+
+${PD_P_BMP_CC} ${PD_P_BMP_H} : ${PD_P_BMP}
+	python3 tools/generate_cc_arrays.py $(dir $@) $<
+
+${PD_NP_BMP_CC} ${PD_NP_BMP_H} : ${PD_NP_BMP}
+	python3 tools/generate_cc_arrays.py $(dir $@) $<
+
+# TODO : Look into potential ways of grouping up the recipes that use this script;
+#	may have difficulty since the target directory is different but there may be
+#	a trick with secondary expansion which I could do
+
+
 # ----------------------------------- BUILD -----------------------------------
 # Compilation targets (executables and object files)
 .PHONY: build
@@ -373,6 +424,8 @@ ${BUILD_DIR}/%/testcase.o: \
 # syscalls object file
 ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
 	${CC} $(CFLAGS) ${INCLUDES} -w -c $< -o $@
+
+
 
 # --------------------------------- ASSEMBLY ----------------------------------
 # Assembly file produced using the '-S' flag with the compilation line; currently
