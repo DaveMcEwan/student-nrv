@@ -12,6 +12,7 @@ default: histogram
 default: extract_main
 default: display_bandwidth
 default: display_instruction_sequences
+default: third_party_downloads
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -426,7 +427,6 @@ SRC_TFLITE_DOWNLOADS_DIR:
 	mkdir -p ${SRC_TFLITE_DOWNLOADS_DIR}
 
 # --------------------------- THIRD PARTY DOWNLOADS  --------------------------
-
 FLATBUFFERS = $(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers
 
 $(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers: SRC_TFLITE_DOWNLOADS_DIR
@@ -442,37 +442,21 @@ PIGWEED = $(SRC_TFLITE_DOWNLOADS_DIR)/pigweed
 $(SRC_TFLITE_DOWNLOADS_DIR)/pigweed: SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/pigweed_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
 
-GEMMLOWP_URL := "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
-GEMMLOWP_MD5 := "7e8191b24853d75de2af87622ad293ba"
+GEMMLOWP 	 = $(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp
+GEMMLOWP_URL = "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
+GEMMLOWP_MD5 = "7e8191b24853d75de2af87622ad293ba"
 
-RUY_URL := "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
-RUY_MD5 := "abf7a91eb90d195f016ebe0be885bb6e"
+$(GEMMLOWP): SRC_TFLITE_DOWNLOADS_DIR
+	$(TOOLS_DIR)/download_and_extract.sh $(GEMMLOWP_URL) $(GEMMLOWP_MD5) $@
 
-DOWNLOAD_SCRIPT := $(TOOLS_DIR)/download_and_extract.sh
+RUY		= $(SRC_TFLITE_DOWNLOADS_DIR)/ruy
+RUY_URL = "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
+RUY_MD5 = "abf7a91eb90d195f016ebe0be885bb6e"
 
-define add_third_party_download
-THIRD_PARTY_DOWNLOADS += $(1)!$(2)!$(SRC_DIR)/tensorflow/lite/micro/downloads/$(3)!$(4)!$(5)
-endef
+$(RUY): SRC_TFLITE_DOWNLOADS_DIR
+	$(TOOLS_DIR)/download_and_extract.sh $(RUY_URL) $(RUY_MD5) $@
 
-THIRD_PARTY_DOWNLOADS :=
-$(eval $(call add_third_party_download,$(GEMMLOWP_URL),$(GEMMLOWP_MD5),gemmlowp,))
-$(eval $(call add_third_party_download,$(RUY_URL),$(RUY_MD5),ruy,))
-
-define create_download_rule
-$(word 3, $(subst !, ,$(1))):
-	$(DOWNLOAD_SCRIPT) $(subst !, ,$(1))
-THIRD_PARTY_TARGETS += $(word 3, $(subst !, ,$(1)))
-endef
-
-# Create rules for downloading third-party dependencies.
-THIRD_PARTY_TARGETS :=
-$(foreach DOWNLOAD,$(THIRD_PARTY_DOWNLOADS),$(eval $(call create_download_rule,$(DOWNLOAD))))
-third_party_downloads: $(THIRD_PARTY_TARGETS) 
-#$(FLATBUFFERS) $(KISSFFT) $(PIGWEED)
-
-# GEMMLOWP = $(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp
-
-# RUY		 = $(SRC_TFLITE_DOWNLOADS_DIR)/ruy
+third_party_downloads : $(FLATBUFFERS) $(KISSFFT) $(PIGWEED) $(GEMMLOWP) $(RUY)
 
 # -------------------------------- MODEL DATA --------------------------------
 
@@ -831,7 +815,11 @@ ${BUILD_DIR}/%/results/insn_sequences/raw/patterns.JSON : \
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
 clean:
-	rm -r ${BUILD_DIR}
+	rm -r $(BUILD_DIR)
+
+.PHONY: clean_downloads
+clean_downloads:
+	rm -rf $(SRC_TFLITE_DOWNLOADS_DIR)
 
 ###################################################################################
 # # Spike with GDB
