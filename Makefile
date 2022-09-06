@@ -22,15 +22,23 @@ endif
 
 # 	Macro definitions for directories to be used in the compile lines
 # /src - Contains input .c files
-SRC_DIR 		= ./src
+SRC_DIR 		= src
 # /src/common - Contains shared files between inputs e.g. syscalls.c
-SRC_COMMON_DIR  = ./src/common
+SRC_COMMON_DIR  = $(SRC_DIR)/common
 # /src/ml-inputs - Contains directories used for code to be compiled for each
 #	ML input
-SRC_ML_DIR		= ./src/ml-inputs
+SRC_ML_DIR		= $(SRC_DIR)/ml-inputs
+
+SRC_TFLITE_MICRO_DIR	= $(SRC_DIR)/tensorflow/lite/micro
+
+SRC_TFLITE_KERNELS_DIR	= $(SRC_TFLITE_MICRO_DIR)/kernels
+
+SRC_TFLITE_DOWNLOADS_DIR = $(SRC_TFLITE_MICRO_DIR)/downloads
 # /build - Constructed directory used to store outputs from recipes including
 #	executables, instruction traces, display pngs etc.
-BUILD_DIR 		= ./build
+BUILD_DIR 		= build
+# /tools - Folder containing python scripts needed to make intermediate files
+TOOLS_DIR		= tools
 
 # Include flag used in compile lines to include header files needed when
 #	compiling using the embecosm compilers
@@ -112,24 +120,24 @@ DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
 #			--------------------- ML TARGETS ---------------------
-ML_GEN_DIR		:=	${BUILD_DIR}/ml-gen
+GEN_ML_DIR		:=	${BUILD_DIR}/ml-gen
 #			------------------ PERSON DETECTION ------------------
-PD_GEN_DIR		:=	${ML_GEN_DIR}/person-detection
-PD_SRC_DIR		:= 	${SRC_ML_DIR}/person-detection
+# PD_GEN_DIR		:=	${ML_GEN_DIR}/person-detection
+# PD_SRC_DIR		:= 	${SRC_ML_DIR}/person-detection
 
 # TFLITE MODELS
-PD_MODEL_TFL 	:= 	${PD_SRC_DIR}/person_detect.tflite
-PD_MODEL_CC		:= 	${PD_GEN_DIR}/person_detect_model_data.cc
-PD_MODEL_H		:=	${PD_GEN_DIR}/person_detect_model_data.h
+# PD_MODEL_TFL 	:= 	${PD_SRC_DIR}/person_detect.tflite
+# PD_MODEL_CC		:= 	${PD_GEN_DIR}/person_detect_model_data.cc
+# PD_MODEL_H		:=	${PD_GEN_DIR}/person_detect_model_data.h
 
 # IMAGE DATA
-PD_P_BMP		:= 	${PD_SRC_DIR}/testdata/person.bmp
-PD_P_BMP_CC		:=	${PD_GEN_DIR}/person_image_data.cc
-PD_P_BMP_H		:= 	${PD_GEN_DIR}/person_image_data.h
+# PD_P_BMP		:= 	${PD_SRC_DIR}/testdata/person.bmp
+# PD_P_BMP_CC		:=	${PD_GEN_DIR}/person_image_data.cc
+# PD_P_BMP_H		:= 	${PD_GEN_DIR}/person_image_data.h
 
-PD_NP_BMP		:= 	${PD_SRC_DIR}/testdata/no_person.bmp
-PD_NP_BMP_CC	:=	${PD_GEN_DIR}/no_person_image_data.cc
-PD_NP_BMP_H		:= 	${PD_GEN_DIR}/no_person_image_data.h
+# PD_NP_BMP		:= 	${PD_SRC_DIR}/testdata/no_person.bmp
+# PD_NP_BMP_CC	:=	${PD_GEN_DIR}/no_person_image_data.cc
+# PD_NP_BMP_H		:= 	${PD_GEN_DIR}/no_person_image_data.h
 
 
 #		--------------------- BANDWIDTH TARGETS ---------------------
@@ -226,6 +234,7 @@ XLEN 	 	?= $(findstring 64, $(ISA))
 #	Commands used within recipes that require these variables taken from the
 #		file path using the pattern rule
 CC = riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
+CXX = riscv$(XLEN)-unknown-elf-g++ # TODO - Check if the compilation works with g++
 OBJDUMP = ${RISCV}/bin/riscv$(XLEN)-unknown-elf-objdump
 SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size 
 
@@ -246,7 +255,7 @@ WINDOW_SIZE = $(word 3, $(subst -, ,$(basename $(notdir $@))))
 #		when simulating,
 #		- Script analysis - Determines what instructions and registers to look
 #		at when parsing.
-CFLAGS = -march=$(ISA)
+CFLAGS = -march=${ISA}
 
 # ABI - Application Binary Interface
 #	- Specifies the integer and floating-point calling convention
@@ -286,6 +295,55 @@ CFLAGS += -nostdlib
 #	- Allows us to use our own startup files which work unlike the standard ones
 #	in setting up the system so that it can be simulated in Spike properly.
 CFLAGS += -nostartfiles
+
+CXXFLAGS = \
+	-std=c++11 \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-threadsafe-statics \
+	-Werror \
+	-fno-unwind-tables \
+	-ffunction-sections \
+	-fdata-sections \
+	-fmessage-length=0 \
+	-DTF_LITE_STATIC_MEMORY \
+	-DTF_LITE_DISABLE_X86_NEON \
+	-Wsign-compare \
+	-Wshadow \
+	-Wunused-variable \
+	-Wunused-function \
+	-Wswitch \
+	-Wvla \
+	-Wall \
+	-Wextra \
+	-Wmissing-field-initializers \
+	-Wstrict-aliasing \
+	-Wno-unused-parameter \
+	-march=${ISA} \
+	-mabi=${ABI} \
+	-mcmodel=medany \
+	-mexplicit-relocs \
+	-fno-builtin-printf \
+	-DTF_LITE_MCU_DEBUG_LOG \
+	-DTF_LITE_USE_GLOBAL_CMATH_FUNCTIONS \
+	-funsigned-char -fno-delete-null-pointer-checks \
+	-fomit-frame-pointer \
+	-fpermissive \
+	-fno-use-cxa-atexit \
+	-DTF_LITE_USE_GLOBAL_MIN \
+	-DTF_LITE_USE_GLOBAL_MAX
+
+CORE_OPTIMIZATION_LEVEL = -Os
+KERNEL_OPTIMIZATION_LEVEL = -O2
+
+# TODO - Replace with local files
+# TODO - Set up 3rd party downloads
+CXX_INCLUDES = -I. \
+	-Itensorflow/lite/micro/tools/make/downloads/gemmlowp \
+	-Itensorflow/lite/micro/tools/make/downloads/flatbuffers/include \
+	-Itensorflow/lite/micro/tools/make/downloads/ruy \
+	-Itensorflow/lite/micro/tools/make/default_inc \
+	-I${ML_GEN_DIR}
 
 LDFLAGS = -T${LINKER_SCRIPT}
 
@@ -363,6 +421,59 @@ FILTERED_INSN_SEQ_DIRS:
 	@echo Making all FILTERED_INSN_SEQ_DIRS
 	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
 
+SRC_TFLITE_DOWNLOADS_DIR:
+	@echo Making SRC_TFLITE_DOWNLOADS_DIR
+	mkdir -p ${SRC_TFLITE_DOWNLOADS_DIR}
+
+# --------------------------- THIRD PARTY DOWNLOADS  --------------------------
+
+FLATBUFFERS = $(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers
+
+$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers: SRC_TFLITE_DOWNLOADS_DIR
+	$(TOOLS_DIR)/flatbuffers_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
+
+KISSFFT = $(SRC_TFLITE_DOWNLOADS_DIR)/kissfft
+
+$(SRC_TFLITE_DOWNLOADS_DIR)/kissfft: SRC_TFLITE_DOWNLOADS_DIR
+	$(TOOLS_DIR)/kissfft_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
+
+PIGWEED = $(SRC_TFLITE_DOWNLOADS_DIR)/pigweed
+
+$(SRC_TFLITE_DOWNLOADS_DIR)/pigweed: SRC_TFLITE_DOWNLOADS_DIR
+	$(TOOLS_DIR)/pigweed_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
+
+GEMMLOWP_URL := "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
+GEMMLOWP_MD5 := "7e8191b24853d75de2af87622ad293ba"
+
+RUY_URL := "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
+RUY_MD5 := "abf7a91eb90d195f016ebe0be885bb6e"
+
+DOWNLOAD_SCRIPT := $(TOOLS_DIR)/download_and_extract.sh
+
+define add_third_party_download
+THIRD_PARTY_DOWNLOADS += $(1)!$(2)!$(SRC_DIR)/tensorflow/lite/micro/downloads/$(3)!$(4)!$(5)
+endef
+
+THIRD_PARTY_DOWNLOADS :=
+$(eval $(call add_third_party_download,$(GEMMLOWP_URL),$(GEMMLOWP_MD5),gemmlowp,))
+$(eval $(call add_third_party_download,$(RUY_URL),$(RUY_MD5),ruy,))
+
+define create_download_rule
+$(word 3, $(subst !, ,$(1))):
+	$(DOWNLOAD_SCRIPT) $(subst !, ,$(1))
+THIRD_PARTY_TARGETS += $(word 3, $(subst !, ,$(1)))
+endef
+
+# Create rules for downloading third-party dependencies.
+THIRD_PARTY_TARGETS :=
+$(foreach DOWNLOAD,$(THIRD_PARTY_DOWNLOADS),$(eval $(call create_download_rule,$(DOWNLOAD))))
+third_party_downloads: $(THIRD_PARTY_TARGETS) 
+#$(FLATBUFFERS) $(KISSFFT) $(PIGWEED)
+
+# GEMMLOWP = $(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp
+
+# RUY		 = $(SRC_TFLITE_DOWNLOADS_DIR)/ruy
+
 # -------------------------------- MODEL DATA --------------------------------
 
 # Ideas:
@@ -374,21 +485,44 @@ FILTERED_INSN_SEQ_DIRS:
 #	directory
 
 # MODEL DATA TARGETS (TFLITE)
-${PD_MODEL_CC} ${PD_MODEL_H} : ${PD_MODEL_TFL}
-	python3 tools/generate_cc_arrays.py $(dir $@) $<
+# ${PD_MODEL_CC} ${PD_MODEL_H} : ${PD_MODEL_TFL}
+# 	python3 tools/generate_cc_arrays.py $(dir $@) $<
 
 # IMAGE DATA TARGETS (BITMAPS)
 
-${PD_P_BMP_CC} ${PD_P_BMP_H} : ${PD_P_BMP}
-	python3 tools/generate_cc_arrays.py $(dir $@) $<
+# ${PD_P_BMP_CC} ${PD_P_BMP_H} : ${PD_P_BMP}
+# 	python3 tools/generate_cc_arrays.py $(dir $@) $<
 
-${PD_NP_BMP_CC} ${PD_NP_BMP_H} : ${PD_NP_BMP}
-	python3 tools/generate_cc_arrays.py $(dir $@) $<
+# ${PD_NP_BMP_CC} ${PD_NP_BMP_H} : ${PD_NP_BMP}
+# 	python3 tools/generate_cc_arrays.py $(dir $@) $<
 
 # TODO : Look into potential ways of grouping up the recipes that use this script;
 #	may have difficulty since the target directory is different but there may be
 #	a trick with secondary expansion which I could do
 
+# -------------------------------- GENERAL DEPENDENCIES --------------------------------
+
+
+# include $(SRC_COMMON_DIR)/Makefile.inc
+
+TEST_CC	 := ${SRC_TFLITE_KERNELS_DIR}/zeros_like.cc
+TEST_OBJ := $(addsuffix /$(notdir $(subst .cc,.o,$(TEST_CC))),$(COMMON_DIRS))
+
+.PHONY: test-zeros
+test-zeros: ${TEST_OBJ}
+# @echo $<
+# test-zeros: ${TEST_OBJ}
+
+# Use secondary expansion to determine the targets
+# Can we have separate targets for Kernels and normal files? If not, might just have
+#	to use same optimization level and combine
+# $$(addprefix $${SRC_TFLITE_KERNELS_DIR}/,$$(notdir $$(addsuffix .cc,$$(basename $$*))))
+.SECONDEXPANSION:
+${BUILD_DIR}/%.o :
+	@echo $(addprefix ${SRC_TFLITE_KERNELS_DIR}/,$(notdir $(addsuffix .cc,$(basename $*))))
+	@echo $@
+	@echo $<
+	@echo Recipe 1
 
 # ----------------------------------- BUILD -----------------------------------
 # Compilation targets (executables and object files)
