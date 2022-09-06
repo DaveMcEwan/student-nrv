@@ -30,6 +30,8 @@ SRC_COMMON_DIR  = $(SRC_DIR)/common
 #	ML input
 SRC_ML_DIR		= $(SRC_DIR)/ml-inputs
 
+SRC_TFLITE_DIR	= $(SRC_DIR)/tensorflow/lite
+
 SRC_TFLITE_MICRO_DIR	= $(SRC_DIR)/tensorflow/lite/micro
 
 SRC_TFLITE_KERNELS_DIR	= $(SRC_TFLITE_MICRO_DIR)/kernels
@@ -40,10 +42,6 @@ SRC_TFLITE_DOWNLOADS_DIR = $(SRC_TFLITE_MICRO_DIR)/downloads
 BUILD_DIR 		= build
 # /tools - Folder containing python scripts needed to make intermediate files
 TOOLS_DIR		= tools
-
-# Include flag used in compile lines to include header files needed when
-#	compiling using the embecosm compilers
-INCLUDES 		= -I./include
 
 LINKER_SCRIPT 	= link.ld
 
@@ -337,13 +335,11 @@ CXXFLAGS = \
 CORE_OPTIMIZATION_LEVEL = -Os
 KERNEL_OPTIMIZATION_LEVEL = -O2
 
-# TODO - Replace with local files
-# TODO - Set up 3rd party downloads
 CXX_INCLUDES = -I. \
-	-Itensorflow/lite/micro/tools/make/downloads/gemmlowp \
-	-Itensorflow/lite/micro/tools/make/downloads/flatbuffers/include \
-	-Itensorflow/lite/micro/tools/make/downloads/ruy \
-	-Itensorflow/lite/micro/tools/make/default_inc \
+	-I$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp \
+	-I$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers/include \
+	-I$(SRC_TFLITE_DOWNLOADS_DIR)/ruy \
+	-I./include \
 	-I${ML_GEN_DIR}
 
 LDFLAGS = -T${LINKER_SCRIPT}
