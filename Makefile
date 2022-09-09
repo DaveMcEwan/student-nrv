@@ -104,40 +104,69 @@ NPROC_DIRS 	:= $(dir ${TRACES})
 # fname - subdirectories holding all files related to a single input ML file
 FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
 # common - subdirectory used to store temporary files used by multiple test cases
-COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
+COMMON_DIRS := $(addsuffix ../common/,${FNAME_DIRS})
 # figures - subdirectories for any figures
 RESULT_DIRS := $(addsuffix results/,${NPROC_DIRS})
+
+LIB_DIRS		:= $(addsuffix lib/,${COMMON_DIRS})
+
+TFLITE_DIRS 				  := $(addsuffix tensorflow/lite/,${COMMON_DIRS})
+TFLITE_C_DIRS 				  := $(addsuffix c/,${TFLITE_DIRS})
+TFLITE_CORE_API_DIRS		  := $(addsuffix core/api/,${TFLITE_DIRS})
+TFLITE_SCHEMA_DIRS			  := $(addsuffix schema/,${TFLITE_DIRS})
+TFLITE_KERNELS_DIRS			  := $(addsuffix kernels/,${TFLITE_DIRS})
+TFLITE_KERNELS_INTERNAL_DIRS  := $(addsuffix internal/,${TFLITE_KERNELS_DIRS})
+
+TFLITE_MICRO_DIRS 			  := $(addsuffix micro/,${TFLITE_DIRS})
+TFLITE_MICRO_AA_DIRS		  := $(addsuffix arena_allocator/,${TFLITE_MICRO_DIRS})
+TFLITE_MICRO_MP_DIRS		  := $(addsuffix memory_planner/,${TFLITE_MICRO_DIRS})
+TFLITE_MICRO_RISCV_DIRS		  := $(addsuffix riscv32_mcu/,${TFLITE_MICRO_DIRS})
+TFLITE_MICRO_KERNELS_DIRS 	  := $(addsuffix kernels/,${TFLITE_MICRO_DIRS})
 
 #	Target files
 OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
 # Histograms produced by Spike
 HISTOGRAMS 		   := $(subst .o,.hst,${OBJECTS})
-EXECUTABLES 	   := $(subst .o,.elf,${OBJECTS})
+EXECUTABLES 	   := $(addsuffix executable.elf,${FNAME_DIRS})
 ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
 DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 # (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
+TFLITE_LIB	   	   := $(addsuffix lib-tflite-micro.a,${LIB_DIRS})
+
+#			--------------------- TFLITE TARGETS ---------------------
+MICROLITE_CC_SRCS := \
+$(wildcard src/tensorflow/lite/micro/*.cc) \
+$(wildcard src/tensorflow/lite/micro/arena_allocator/*.cc) \
+$(wildcard src/tensorflow/lite/micro/memory_planner/*.cc) \
+$(wildcard src/tensorflow/lite/micro/riscv32_mcu/*.cc)
+
+# Written using secondary expansion so that the pattern rule can be accessed in
+#	the dependency list for recipes
+MICROLITE_LIB_OBJS := $$(subst .cc,.o,\
+	$$(subst src/,$$(BUILD_DIR)/$$*/../common/,$$(MICROLITE_CC_SRCS)))
+
+# Don't include the '/../' if we want to have the object files be made into a
+#	library file first
+
+TFLITE_CC_SRCS := \
+$(wildcard src/tensorflow/lite/c/common.cc) \
+$(wildcard src/tensorflow/lite/core/api/*.cc) \
+$(wildcard src/tensorflow/lite/schema/*.cc) \
+$(wildcard src/tensorflow/lite/kernels/*.cc) \
+$(wildcard src/tensorflow/lite/kernels/internal/*.cc)
+
+TFLITE_LIB_OBJS := $$(subst .cc,.o,\
+	$$(subst src/,$$(BUILD_DIR)/$$*/../common/,$$(TFLITE_CC_SRCS)))
+
+MICROLITE_CC_KERNEL_SRCS := $(wildcard src/tensorflow/lite/micro/kernels/*.cc)
+
+MICROLITE_KERNEL_LIB_OBJS := $$(subst .cc,.o,\
+	$$(subst src/,$$(BUILD_DIR)/$$*/../common/,$$(MICROLITE_CC_KERNEL_SRCS)))
+
 #			--------------------- ML TARGETS ---------------------
 GEN_ML_DIR		:=	${BUILD_DIR}/ml-gen
-#			------------------ PERSON DETECTION ------------------
-# PD_GEN_DIR		:=	${ML_GEN_DIR}/person-detection
-# PD_SRC_DIR		:= 	${SRC_ML_DIR}/person-detection
-
-# TFLITE MODELS
-# PD_MODEL_TFL 	:= 	${PD_SRC_DIR}/person_detect.tflite
-# PD_MODEL_CC		:= 	${PD_GEN_DIR}/person_detect_model_data.cc
-# PD_MODEL_H		:=	${PD_GEN_DIR}/person_detect_model_data.h
-
-# IMAGE DATA
-# PD_P_BMP		:= 	${PD_SRC_DIR}/testdata/person.bmp
-# PD_P_BMP_CC		:=	${PD_GEN_DIR}/person_image_data.cc
-# PD_P_BMP_H		:= 	${PD_GEN_DIR}/person_image_data.h
-
-# PD_NP_BMP		:= 	${PD_SRC_DIR}/testdata/no_person.bmp
-# PD_NP_BMP_CC	:=	${PD_GEN_DIR}/no_person_image_data.cc
-# PD_NP_BMP_H		:= 	${PD_GEN_DIR}/no_person_image_data.h
-
 
 #		--------------------- BANDWIDTH TARGETS ---------------------
 # Directories
@@ -232,10 +261,11 @@ XLEN 	 	?= $(findstring 64, $(ISA))
 
 #	Commands used within recipes that require these variables taken from the
 #		file path using the pattern rule
-CC = riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
-CXX = riscv$(XLEN)-unknown-elf-g++ # TODO - Check if the compilation works with g++
+CC 		= riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
+CXX 	= riscv$(XLEN)-unknown-elf-g++ # TODO - Check if the compilation works with g++
 OBJDUMP = ${RISCV}/bin/riscv$(XLEN)-unknown-elf-objdump
-SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size 
+SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size
+AR		= riscv$(XLEN)-unknown-elf-ar
 
 # SPIKE 	= ${RISCV}/bin/spike
 SPIKE	= spike
@@ -340,7 +370,8 @@ CXX_INCLUDES = -I. \
 	-I$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers/include \
 	-I$(SRC_TFLITE_DOWNLOADS_DIR)/ruy \
 	-I./include \
-	-I${ML_GEN_DIR}
+	-I$(SRC_DIR) \
+	-I${GEN_ML_DIR}
 
 LDFLAGS = -T${LINKER_SCRIPT}
 
@@ -418,6 +449,44 @@ FILTERED_INSN_SEQ_DIRS:
 	@echo Making all FILTERED_INSN_SEQ_DIRS
 	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
 
+LIB_DIRS:
+	@echo Making all LIB_DIRS
+	mkdir -p ${LIB_DIRS}
+
+TFLITE_DIRS:
+	mkdir -p ${TFLITE_DIRS}
+
+TFLITE_C_DIRS:
+	mkdir -p ${TFLITE_C_DIRS}
+
+TFLITE_CORE_API_DIRS:
+	@echo Making all TFLITE_CORE_API_DIRS
+	mkdir -p ${TFLITE_CORE_API_DIRS}
+
+TFLITE_SCHEMA_DIRS:
+	mkdir -p ${TFLITE_SCHEMA_DIRS}
+
+TFLITE_KERNELS_DIRS:
+	mkdir -p ${TFLITE_KERNELS_DIRS}
+
+TFLITE_KERNELS_INTERNAL_DIRS:
+	mkdir -p ${TFLITE_KERNELS_INTERNAL_DIRS}
+
+TFLITE_MICRO_DIRS:
+	mkdir -p ${TFLITE_MICRO_DIRS}
+
+TFLITE_MICRO_AA_DIRS:
+	mkdir -p ${TFLITE_MICRO_AA_DIRS}
+
+TFLITE_MICRO_MP_DIRS:
+	mkdir -p ${TFLITE_MICRO_MP_DIRS}
+
+TFLITE_MICRO_RISCV_DIRS:
+	mkdir -p ${TFLITE_MICRO_RISCV_DIRS}
+
+TFLITE_MICRO_KERNELS_DIRS:
+	mkdir -p ${TFLITE_MICRO_KERNELS_DIRS}
+
 SRC_TFLITE_DOWNLOADS_DIR:
 	@echo Making SRC_TFLITE_DOWNLOADS_DIR
 	mkdir -p ${SRC_TFLITE_DOWNLOADS_DIR}
@@ -425,17 +494,17 @@ SRC_TFLITE_DOWNLOADS_DIR:
 # --------------------------- THIRD PARTY DOWNLOADS  --------------------------
 FLATBUFFERS = $(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers
 
-$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers: SRC_TFLITE_DOWNLOADS_DIR
+$(FLATBUFFERS): SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/flatbuffers_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
 
 KISSFFT = $(SRC_TFLITE_DOWNLOADS_DIR)/kissfft
 
-$(SRC_TFLITE_DOWNLOADS_DIR)/kissfft: SRC_TFLITE_DOWNLOADS_DIR
+$(KISSFFT): SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/kissfft_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
 
 PIGWEED = $(SRC_TFLITE_DOWNLOADS_DIR)/pigweed
 
-$(SRC_TFLITE_DOWNLOADS_DIR)/pigweed: SRC_TFLITE_DOWNLOADS_DIR
+$(PIGWEED): SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/pigweed_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
 
 GEMMLOWP 	 = $(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp
@@ -452,72 +521,59 @@ RUY_MD5 = "abf7a91eb90d195f016ebe0be885bb6e"
 $(RUY): SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/download_and_extract.sh $(RUY_URL) $(RUY_MD5) $@
 
+.PHONY: third_party_downloads
 third_party_downloads : $(FLATBUFFERS) $(KISSFFT) $(PIGWEED) $(GEMMLOWP) $(RUY)
-
-# -------------------------------- MODEL DATA --------------------------------
-
-# Ideas:
-#	- Follow same format as other instances where I used multiple recipes
-#	- Separate recipes to produce the .cc and .h files
-#	- Having variables assigned to all ML input's .cc and .h files -
-#	- Form the .bmp file input through secondary expansion.
-#	- Produced .cc and .h files are then stored in an ml-gen folder of the build/
-#	directory
-
-# MODEL DATA TARGETS (TFLITE)
-# ${PD_MODEL_CC} ${PD_MODEL_H} : ${PD_MODEL_TFL}
-# 	python3 tools/generate_cc_arrays.py $(dir $@) $<
-
-# IMAGE DATA TARGETS (BITMAPS)
-
-# ${PD_P_BMP_CC} ${PD_P_BMP_H} : ${PD_P_BMP}
-# 	python3 tools/generate_cc_arrays.py $(dir $@) $<
-
-# ${PD_NP_BMP_CC} ${PD_NP_BMP_H} : ${PD_NP_BMP}
-# 	python3 tools/generate_cc_arrays.py $(dir $@) $<
-
-# TODO : Look into potential ways of grouping up the recipes that use this script;
-#	may have difficulty since the target directory is different but there may be
-#	a trick with secondary expansion which I could do
 
 # -------------------------------- GENERAL DEPENDENCIES --------------------------------
 
-
-# include $(SRC_COMMON_DIR)/Makefile.inc
-
-TEST_CC	 := ${SRC_TFLITE_KERNELS_DIR}/zeros_like.cc
-TEST_OBJ := $(addsuffix /$(notdir $(subst .cc,.o,$(TEST_CC))),$(COMMON_DIRS))
-
-.PHONY: test-zeros
-test-zeros: ${TEST_OBJ}
-# @echo $<
-# test-zeros: ${TEST_OBJ}
-
-# Use secondary expansion to determine the targets
-# Can we have separate targets for Kernels and normal files? If not, might just have
-#	to use same optimization level and combine
-# $$(addprefix $${SRC_TFLITE_KERNELS_DIR}/,$$(notdir $$(addsuffix .cc,$$(basename $$*))))
-.SECONDEXPANSION:
-${BUILD_DIR}/%.o :
-	@echo $(addprefix ${SRC_TFLITE_KERNELS_DIR}/,$(notdir $(addsuffix .cc,$(basename $*))))
-	@echo $@
-	@echo $<
-	@echo Recipe 1
-
 # ----------------------------------- BUILD -----------------------------------
-# Compilation targets (executables and object files)
+# Recipes for all of the default common TFLite 
+include $(SRC_COMMON_DIR)/Makefile.inc
+include $(SRC_ML_DIR)/person-detection/Makefile.inc
+
+.PHONY: archive-test
+archive-test: $(TFLITE_LIB)
+
+# TFLite common dependencies : $$(subst .cc,.o,$$(subst src/,$$(BUILD_DIR)/$$*/common/,$$(MICROLITE_CC_KERNEL_SRCS)))
+# .SECONDEXPANSION:
+# $(BUILD_DIR)/%/common/lib/lib-tflite-micro.a: \
+# 	$(MICROLITE_LIB_OBJS) $(TFLITE_LIB_OBJS) $(MICROLITE_KERNEL_LIB_OBJS) \
+# 	| LIB_DIRS $(third_party_downloads)
+# 	$(AR) -r $@ $^
+
 .PHONY: build
 build: ${EXECUTABLES}
 
+.SECONDEXPANSION:
+$(BUILD_DIR)/%/executable.elf: \
+	$(BUILD_DIR)/%/../common/syscalls.o \
+	$(BUILD_DIR)/$$*/$$(word 2, $$(subst /, ,$$*)).a \
+	$(MICROLITE_LIB_OBJS) $(TFLITE_LIB_OBJS) $(MICROLITE_KERNEL_LIB_OBJS) \
+	${SRC_COMMON_DIR}/entry.S | FNAME_DIRS $(third_party_downloads)
+	
+	$(CXX) -march=$(ISA) -mabi=$(ABI) $(CXX_INCLUDES) -o $@ $^ \
+	-Wl,--fatal-warnings -Wl,--gc-sections -T$(LINKER_SCRIPT) -nostartfiles -lm -lgcc -lm
+
+	@echo LETS GOOOOOOOOO
+
+# syscalls object file
+${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
+	${CC} $(CFLAGS) -I./include -w -c $< -o $@ 
+
+
+# Compilation targets (executables and object files)
+# .PHONY: build
+# build: ${EXECUTABLES}
+
 # Executable
 # example $* = % = rv32gc-ilp32-gcc/simple_add/nproc-1/..
-${BUILD_DIR}/%/testcase.elf: \
-	${BUILD_DIR}/%/testcase.o \
-	${BUILD_DIR}/%/../common/syscalls.o \
-	${SRC_COMMON_DIR}/entry.S \
-	| FNAME_DIRS
+# ${BUILD_DIR}/%/testcase.elf: \
+# 	${BUILD_DIR}/%/testcase.o \
+# 	${BUILD_DIR}/%/../common/syscalls.o \
+# 	${SRC_COMMON_DIR}/entry.S \
+# 	| FNAME_DIRS
 
-	${CC} $^ $(CFLAGS) ${INCLUDES} ${LDFLAGS} -o $@
+# 	${CC} $^ $(CFLAGS) ${INCLUDES} ${LDFLAGS} -o $@
 
 # First dependency of this recipe is dependent on information in the file path of the
 #	recipe which must be expanded into $*. Secondary expansion is used to then access
@@ -525,20 +581,15 @@ ${BUILD_DIR}/%/testcase.elf: \
 #	necessary prefixes and suffixes, forms the file path for the input test case (whose
 #	name is present in the file path)
 # Input program object file
-.SECONDEXPANSION:
-${BUILD_DIR}/%/testcase.o: \
-	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
-	| FNAME_DIRS
+# .SECONDEXPANSION:
+# ${BUILD_DIR}/%/testcase.o: \
+# 	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
+# 	| FNAME_DIRS
 
-	echo "Forming object file"
-	echo $@
+# 	echo "Forming object file"
+# 	echo $@
 
-	${CC} $(CFLAGS) ${INCLUDES} -c $^ -o $@
-
-# syscalls object file
-${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
-	${CC} $(CFLAGS) ${INCLUDES} -w -c $< -o $@
-
+# 	${CC} $(CFLAGS) ${INCLUDES} -c $^ -o $@
 
 
 # --------------------------------- ASSEMBLY ----------------------------------
@@ -562,21 +613,21 @@ ${BUILD_DIR}/%/testcase.S: \
 .PHONY: sim
 sim: ${TRACES}
 
-${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../testcase.elf | NPROC_DIRS
+${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
 	${SPIKE} -p${N_PROC} -l --isa=$(ISA) $< 2> $@
 
 # Disassembly
 .PHONY: disassembly
 disassembly: ${DISASSEMBLIES}
 
-${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
+${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/executable.elf | FNAME_DIRS
 	${OBJDUMP} -S -D $< > $@
 
 # Histogram produced using the '-g' flag
 .PHONY: histogram
 histogram: ${HISTOGRAMS}
 
-${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
+${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/executable.elf | FNAME_DIRS
 	${SPIKE} -g --isa=$(ISA) $< 2> $@
 
 # Reduced instruction trace that only covers the region where we
