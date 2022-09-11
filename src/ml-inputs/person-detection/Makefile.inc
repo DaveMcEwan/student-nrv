@@ -43,8 +43,8 @@ person_detection_O_FILES += $(person_detection_GEN_O_FILES)
 #			--------------------- RECIPES ---------------------
 # LIBRARY FILE
 .SECONDEXPANSION:
-$(BUILD_DIR)/%/person_detection.a: $(person_detection_O_FILES)
-	@echo reaching lib recipe
+$(BUILD_DIR)/%/person_detection.a: $(person_detection_O_FILES) | $(PRSN_DET_MODEL_CC) $(PRSN_DET_P_CC) $(PRSN_DET_NP_CC)
+	@echo Making library file
 	$(AR) -r $@ $^
 
 # FOLDERS
@@ -75,12 +75,10 @@ ${BUILD_DIR}/%/no_person_image_data.o : ${PRSN_DET_NP_CC}
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
 # MAIN
-${BUILD_DIR}/%/main.o : ${SRC_PRSN_DET_DIR}/main.cc | FNAME_DIRS
-	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
+${BUILD_DIR}/%/person_detection_test.o : \
+	${SRC_PRSN_DET_DIR}/person_detection_test.cc \
+	| FNAME_DIRS ${PRSN_DET_MODEL_H} ${PRSN_DET_P_H} ${PRSN_DET_NP_H}
 
-# Needs person-detect model data
-${BUILD_DIR}/%/main_functions.o : \
-	${SRC_PRSN_DET_DIR}/main_functions.cc $(PRSN_DET_MODEL_H)
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
 # DEPENDENCIES

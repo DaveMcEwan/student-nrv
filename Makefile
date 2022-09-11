@@ -549,8 +549,9 @@ $(BUILD_DIR)/%/executable.elf: \
 	$(BUILD_DIR)/%/../common/syscalls.o \
 	$(BUILD_DIR)/$$*/$$(word 2, $$(subst /, ,$$*)).a \
 	$(MICROLITE_LIB_OBJS) $(TFLITE_LIB_OBJS) $(MICROLITE_KERNEL_LIB_OBJS) \
-	${SRC_COMMON_DIR}/entry.S | FNAME_DIRS $(third_party_downloads)
+	${SRC_COMMON_DIR}/entry.S
 	
+	mkdir -p $(dir $@)
 	$(CXX) -march=$(ISA) -mabi=$(ABI) $(CXX_INCLUDES) -o $@ $^ \
 	-Wl,--fatal-warnings -Wl,--gc-sections -T$(LINKER_SCRIPT) -nostartfiles -lm -lgcc -lm
 
@@ -560,37 +561,11 @@ $(BUILD_DIR)/%/executable.elf: \
 ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
 	${CC} $(CFLAGS) -I./include -w -c $< -o $@ 
 
-
-# Compilation targets (executables and object files)
-# .PHONY: build
-# build: ${EXECUTABLES}
-
-# Executable
-# example $* = % = rv32gc-ilp32-gcc/simple_add/nproc-1/..
-# ${BUILD_DIR}/%/testcase.elf: \
-# 	${BUILD_DIR}/%/testcase.o \
-# 	${BUILD_DIR}/%/../common/syscalls.o \
-# 	${SRC_COMMON_DIR}/entry.S \
-# 	| FNAME_DIRS
-
-# 	${CC} $^ $(CFLAGS) ${INCLUDES} ${LDFLAGS} -o $@
-
 # First dependency of this recipe is dependent on information in the file path of the
 #	recipe which must be expanded into $*. Secondary expansion is used to then access
 #	the file path through the pattern rule which after parsing a bit and adding the 
 #	necessary prefixes and suffixes, forms the file path for the input test case (whose
 #	name is present in the file path)
-# Input program object file
-# .SECONDEXPANSION:
-# ${BUILD_DIR}/%/testcase.o: \
-# 	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
-# 	| FNAME_DIRS
-
-# 	echo "Forming object file"
-# 	echo $@
-
-# 	${CC} $(CFLAGS) ${INCLUDES} -c $^ -o $@
-
 
 # --------------------------------- ASSEMBLY ----------------------------------
 # Assembly file produced using the '-S' flag with the compilation line; currently

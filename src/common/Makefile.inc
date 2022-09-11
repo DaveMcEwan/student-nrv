@@ -28,13 +28,13 @@ $(BUILD_DIR)/%/$(COMMON_TFLITE)/core/api/error_reporter.o : \
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE)/core/api/flatbuffer_conversions.o : \
 	$(SRC_TFLITE_DIR)/core/api/flatbuffer_conversions.cc \
-	$(third_party_downloads) | TFLITE_CORE_API_DIRS
+	$(FLATBUFFERS) | TFLITE_CORE_API_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE)/core/api/op_resolver.o : \
 	$(SRC_TFLITE_DIR)/core/api/op_resolver.cc \
-	$(third_party_downloads) | TFLITE_CORE_API_DIRS
+	$(FLATBUFFERS) | TFLITE_CORE_API_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
@@ -46,7 +46,7 @@ $(BUILD_DIR)/%/$(COMMON_TFLITE)/core/api/tensor_utils.o : \
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE)/schema/schema_utils.o : \
 	$(SRC_TFLITE_DIR)/schema/schema_utils.cc \
-	$(third_party_downloads) | TFLITE_SCHEMA_DIRS
+	$(FLATBUFFERS) | TFLITE_SCHEMA_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
@@ -89,7 +89,7 @@ $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/flatbuffer_utils.o : \
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/memory_helpers.o : \
 	$(SRC_TFLITE_MICRO_DIR)/memory_helpers.cc \
-	$(third_party_downloads) | TFLITE_MICRO_DIRS
+	$(FLATBUFFERS) | TFLITE_MICRO_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
@@ -101,7 +101,7 @@ $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/micro_allocation_info.o : \
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/micro_allocator.o : \
 	$(SRC_TFLITE_MICRO_DIR)/micro_allocator.cc \
-	$(third_party_downloads) | TFLITE_MICRO_DIRS
+	$(FLATBUFFERS) | TFLITE_MICRO_DIRS
 	
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
@@ -119,13 +119,13 @@ $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/micro_error_reporter.o : \
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/micro_graph.o : \
 	$(SRC_TFLITE_MICRO_DIR)/micro_graph.cc \
-	$(third_party_downloads) | TFLITE_MICRO_DIRS
+	$(FLATBUFFERS) | TFLITE_MICRO_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/micro_interpreter.o : \
 	$(SRC_TFLITE_MICRO_DIR)/micro_interpreter.cc \
-	$(third_party_downloads) | TFLITE_MICRO_DIRS
+	$(FLATBUFFERS) | TFLITE_MICRO_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
@@ -179,13 +179,13 @@ $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/system_setup.o : \
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/test_helper_custom_ops.o : \
 	$(SRC_TFLITE_MICRO_DIR)/test_helper_custom_ops.cc \
-	$(third_party_downloads) | TFLITE_MICRO_DIRS
+	$(FLATBUFFERS) | TFLITE_MICRO_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO)/test_helpers.o : \
 	$(SRC_TFLITE_MICRO_DIR)/test_helpers.cc \
-	$(third_party_downloads) | TFLITE_MICRO_DIRS
+	$(FLATBUFFERS) | TFLITE_MICRO_DIRS
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
@@ -375,7 +375,7 @@ $(third_party_downloads) | TFLITE_MICRO_KERNELS_DIRS
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO_KERNELS)/detection_postprocess.o : \
 $(SRC_TFLITE_KERNELS_DIR)/detection_postprocess.cc \
-$(third_party_downloads) | TFLITE_MICRO_KERNELS_DIRS
+	| TFLITE_MICRO_KERNELS_DIRS $(GEMMLOWP)
 	$(CXX) $(CXXFLAGS) $(KERNEL_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO_KERNELS)/div.o : \
@@ -435,7 +435,7 @@ $(third_party_downloads) | TFLITE_MICRO_KERNELS_DIRS
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO_KERNELS)/fully_connected.o : \
 $(SRC_TFLITE_KERNELS_DIR)/fully_connected.cc \
-$(third_party_downloads) | TFLITE_MICRO_KERNELS_DIRS
+ 	| TFLITE_MICRO_KERNELS_DIRS $(RUYporting117DSn)
 	$(CXX) $(CXXFLAGS) $(KERNEL_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/%/$(COMMON_TFLITE_MICRO_KERNELS)/gather_nd.o : \
