@@ -87,12 +87,6 @@ ${BUILD_DIR}/%/dependencies/detection_responder.o : \
 
 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
-${BUILD_DIR}/%/dependencies/image_provider.o : \
-	${SRC_PRSN_DET_DIR}/dependencies/image_provider.cc | PRSN_DET_DEP_DIRS
-
-	@echo In image_provider
-	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
-
 ${BUILD_DIR}/%/dependencies/model_settings.o : \
 	${SRC_PRSN_DET_DIR}/dependencies/model_settings.cc | PRSN_DET_DEP_DIRS
 

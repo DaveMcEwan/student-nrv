@@ -5,14 +5,19 @@
 
 .SECONDARY: # Used to stop make from deleting intermediate files
 
+# Default target purely for Github actions - used to verify if Spike simulation
+#	completes correctly without logging anything (which takes up hours and
+#	consumes a lot of space)
+default: sim-test
+
 # Default targets are just the final ones (not including intermediate targets)
-default: assembly
-default: disassembly
-default: histogram
-default: extract_main
-default: display_bandwidth
-default: display_instruction_sequences
-default: third_party_downloads
+# default: assembly
+# default: disassembly
+# default: histogram
+# default: extract_main
+# default: display_bandwidth
+# default: display_instruction_sequences
+# default: third_party_downloads
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -96,6 +101,8 @@ TRACES := $(foreach row,${CSV_ROWS},$\
 # 	Form the other targets using string manipulation with the current target
 # main.trc - Section of instruction trace between where we enter and leave main
 MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
+
+TEST_TRACES	   := $(subst testcase,test,${TRACES})
 
 # 	Directory names - Formed by adjusting the TRACES list
 # nproc - subdirectories used to contain the files associated with
@@ -555,7 +562,7 @@ $(BUILD_DIR)/%/executable.elf: \
 	$(CXX) -march=$(ISA) -mabi=$(ABI) $(CXX_INCLUDES) -o $@ $^ \
 	-Wl,--fatal-warnings -Wl,--gc-sections -T$(LINKER_SCRIPT) -nostartfiles -lm -lgcc -lm
 
-	@echo LETS GOOOOOOOOO
+	@echo Executable produced
 
 # syscalls object file
 ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
@@ -571,18 +578,26 @@ ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
 # Assembly file produced using the '-S' flag with the compilation line; currently
 #	not being used for any analysis
 
-.PHONY: assembly
-assembly: ${ASSEMBLIES}
+# .PHONY: assembly
+# assembly: ${ASSEMBLIES}
 
-# Secondary expansion use explained in the testcase.o recipe
-.SECONDEXPANSION:
-${BUILD_DIR}/%/testcase.S: \
-	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
-	| FNAME_DIRS
+# # Secondary expansion use explained in the testcase.o recipe
+# .SECONDEXPANSION:
+# ${BUILD_DIR}/%/testcase.S: \
+# 	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
+# 	| FNAME_DIRS
 
-	${CC} $(CFLAGS) ${INCLUDES} -S $^ -o $@
+# 	${CC} $(CFLAGS) ${INCLUDES} -S $^ -o $@
 
 # --------------- INSTRUCTION TRACE, DISASSEMBLY and HISTOGRAM ---------------
+
+# Debugging recipe - Verify if simulation completes without logging
+#	the instruction trace
+.PHONY: sim-test
+sim-test: ${TEST_TRACES}
+
+${BUILD_DIR}/%/test.trc: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
+	${SPIKE} -p${N_PROC} --isa=$(ISA) $< > $@
 
 # Instruction trace
 .PHONY: sim
