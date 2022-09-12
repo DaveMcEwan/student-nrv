@@ -1,7 +1,7 @@
 XLEN     COMPILER    EXTENSIONS  ABI    N_PROC    FNAME
-32      gcc         gc          ilp32   1         simple_add
-32      gcc         gc          ilp32   32         simple_add
-#32      gcc         gc          ilp32   3         simple_add
+#32      gcc         gc          ilp32   1         simple_add
+#32      gcc         gc          ilp32   32         simple_add
+32      gcc         gc          ilp32   1         person_detection
 #32      gcc         gc          ilp32   1         printf
 #32      gcc         gc          ilp32   2         func_call
 #32      gcc         iaf         ilp32   3         simple_add
