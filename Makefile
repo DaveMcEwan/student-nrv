@@ -140,8 +140,6 @@ DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
 # (main) section of the disassembly
 MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
 
-TFLITE_LIB	   	   := $(addsuffix lib-tflite-micro.a,${LIB_DIRS})
-
 #			--------------------- TFLITE TARGETS ---------------------
 MICROLITE_CC_SRCS := \
 $(wildcard src/tensorflow/lite/micro/*.cc) \
@@ -538,8 +536,9 @@ third_party_downloads : $(FLATBUFFERS) $(KISSFFT) $(PIGWEED) $(GEMMLOWP) $(RUY)
 include $(SRC_COMMON_DIR)/Makefile.inc
 include $(SRC_ML_DIR)/person-detection/Makefile.inc
 
+PD_LIB := $(addsuffix person_detection.a,${FNAME_DIRS})
 .PHONY: archive-test
-archive-test: $(TFLITE_LIB)
+archive-test: $(PD_LIB)
 
 # TFLite common dependencies : $$(subst .cc,.o,$$(subst src/,$$(BUILD_DIR)/$$*/common/,$$(MICROLITE_CC_KERNEL_SRCS)))
 # .SECONDEXPANSION:
