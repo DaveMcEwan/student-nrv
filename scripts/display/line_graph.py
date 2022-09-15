@@ -57,9 +57,17 @@ def main():
         return 1
     
     values = np.empty([line_count])
+    index = 0
 
-    for num, line in enumerate(sys.stdin):
-        values[num] = line
+    value = sys.stdin.read(3)
+    # for num, line in enumerate(sys.stdin.read(3)):
+    while value:
+        values[index] = value
+        # Skip next value, allows us to sample without having to read all
+        #   of the data in in the first place.
+        sys.stdin.read(3)
+        value = sys.stdin.read(3)
+        index += 1
 
     display_graph(values)
 

@@ -29,6 +29,7 @@ from common.isa_management import check_isa
 # Input argument parsing (to detect the ISA)
 parser = argparse.ArgumentParser()
 parser.add_argument("--isa", help="RISC-V ISA string")
+parser.add_argument("-j", "--jsondump", help="Filepath/name for output JSON file")
 parser.add_argument("-k", "--key", help="Key from the CSV values that we want to \
     access the values from and print in a stream")
 args = parser.parse_args() # ISA argument stored in args.isa
@@ -36,15 +37,18 @@ args = parser.parse_args() # ISA argument stored in args.isa
 #   Iterate through the instruction stream and output the byte stream
 def print_key_stream(all_instrs):
     # print("Stream of values associated with the key: "+args.key)
-    for line in sys.stdin:
-        words = line.split()
-        insn_name = words[4]
 
-        if insn_name in all_instrs:
-            print(all_instrs[insn_name])
-        else:
-            print(0) # TODO : Make sure this doesn't mess with other instruction traces
-            #    other than bandwidth stuff
+    if args.jsondump:
+        with open(args.jsondump, 'w') as dump:
+            for line in sys.stdin:
+                insn_name = line.split()[4]
+
+                if insn_name in all_instrs:
+                    dump.write(all_instrs[insn_name])
+                else:
+                    dump.write("0") 
+                    # TODO : Make sure this doesn't mess with other instruction traces
+                    #    other than bandwidth stuff
 
 def main():
     print_key_stream(check_isa(args.isa, args.key))
