@@ -1,7 +1,6 @@
-extern int printf(const char* fmt, ...);
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 
-int main(int argc, char** argv);
-int main(int argc, char** argv)
+int main()
 {
   // single-threaded programs override this function.
   printf("Hello, World from MAIN !\n");

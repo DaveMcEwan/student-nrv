@@ -8,16 +8,16 @@
 # Default target purely for Github actions - used to verify if Spike simulation
 #	completes correctly without logging anything (which takes up hours and
 #	consumes a lot of space)
-default: sim-test
+# default: sim-test
 
 # Default targets are just the final ones (not including intermediate targets)
 # default: assembly
-# default: disassembly
+default: third_party_downloads
+default: disassembly
 # default: histogram
-# default: extract_main
-# default: display_bandwidth
-# default: display_instruction_sequences
-# default: third_party_downloads
+default: extract_main
+default: display_bandwidth
+default: display_instruction_sequences
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -337,7 +337,6 @@ CXXFLAGS = \
 	-fno-rtti \
 	-fno-exceptions \
 	-fno-threadsafe-statics \
-	-Werror \
 	-fno-unwind-tables \
 	-ffunction-sections \
 	-fdata-sections \
@@ -346,15 +345,12 @@ CXXFLAGS = \
 	-DTF_LITE_DISABLE_X86_NEON \
 	-Wsign-compare \
 	-Wshadow \
-	-Wunused-variable \
-	-Wunused-function \
 	-Wswitch \
 	-Wvla \
 	-Wall \
 	-Wextra \
 	-Wmissing-field-initializers \
 	-Wstrict-aliasing \
-	-Wno-unused-parameter \
 	-march=${ISA} \
 	-mabi=${ABI} \
 	-mcmodel=medany \
@@ -536,6 +532,7 @@ third_party_downloads : $(FLATBUFFERS) $(KISSFFT) $(PIGWEED) $(GEMMLOWP) $(RUY)
 # ----------------------------------- BUILD -----------------------------------
 # Recipes for all of the default common TFLite 
 include $(SRC_COMMON_DIR)/Makefile.inc
+include $(SRC_DIR)/examples/printf.inc
 include $(SRC_ML_DIR)/person-detection/Makefile.inc
 
 .PHONY: archive-test
@@ -562,10 +559,11 @@ $(BUILD_DIR)/%/executable.elf: \
 	$(CXX) -march=$(ISA) -mabi=$(ABI) $(CXX_INCLUDES) -o $@ $^ \
 	-Wl,--fatal-warnings -Wl,--gc-sections -T$(LINKER_SCRIPT) -nostartfiles -lm -lgcc -lm
 
-	@echo Executable produced
+# 	@echo Executable produced
 
 # syscalls object file
-${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
+${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c
+	mkdir -p $(dir $@)
 	${CC} $(CFLAGS) -I./include -w -c $< -o $@ 
 
 # First dependency of this recipe is dependent on information in the file path of the
@@ -673,7 +671,8 @@ ${LOAD_BW_2} ${LOAD_BW_4} ${LOAD_BW_8} ${LOAD_BW_16} \
 ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
 	: $$(subst .pdf,.trc,$$@) | LOAD_BW_DIRS
 
-	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
+	python3 scripts/display/line_graph.py -p=mov_avg \
+	-l=$(addsuffix ../length.txt, $(dir $@)) \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
 
 .PHONY: avg_load_bw_all
@@ -705,7 +704,8 @@ ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} \
 ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
 	: $$(addsuffix load-byte-stream.trc, $$(dir $$@)) | LOAD_BW_DIRS
 	
-	python3 scripts/common/moving_average.py -f=True -n=$(WINDOW_SIZE) \
+	python3 scripts/common/moving_average.py -n=$(WINDOW_SIZE) \
+	-l=$(addsuffix ../length.txt, $(dir $@)) \
 	< $< > $@
 
 # 			  ------------------------ STORE ------------------------
@@ -737,7 +737,8 @@ ${STORE_BW_2} ${STORE_BW_4} ${STORE_BW_8} ${STORE_BW_16} \
 ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
 	: $$(addsuffix .trc, $$(basename $$@)) | STORE_BW_DIRS
 
-	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
+	python3 scripts/display/line_graph.py -p=mov_avg \
+	-l=$(addsuffix ../length.txt, $(dir $@)) \
 	-n=$(WINDOW_SIZE) --img=$@ < $<
 
 .PHONY: avg_store_bw_all
@@ -765,9 +766,11 @@ avg_store_bw_large  : ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
 .SECONDEXPANSION:
 ${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} \
 ${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} \
-	: $$(addsuffix store-byte-stream.trc, $$(dir $$@)) | STORE_BW_DIRS
+	: $$(addsuffix store-byte-stream.trc, $$(dir $$@))
 	
-	python3 scripts/common/moving_average.py -f=True -n=$(WINDOW_SIZE) \
+	mkdir -p $(dir $@)
+	python3 scripts/common/moving_average.py -n=$(WINDOW_SIZE) \
+	-l=$(addsuffix ../length.txt, $(dir $@)) \
 	< $< > $@
 
 # 	Recipes for solely producing the bandwidth streams
@@ -777,13 +780,18 @@ bandwidth_streams: load_bw_streams store_bw_streams
 
 .PHONY: load_bw_streams
 load_bw_streams: ${LOAD_BYTE_STREAMS}
-${BUILD_DIR}/%/results/bw/load/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc | LOAD_BW_DIRS
-	echo "Load BW streams"
-	python3 scripts/common/key_stream.py -k=Ld --isa=$(ISA) < $< > $@
+${BUILD_DIR}/%/results/bw/load/load-byte-stream.trc : \
+	${BUILD_DIR}/%/main.trc
+
+	mkdir -p $(dir $@)
+	python3 scripts/common/key_stream.py -k=Ld  --isa=$(ISA) < $< > $@
 
 .PHONY: store_bw_streams
 store_bw_streams: ${STORE_BYTE_STREAMS}
-${BUILD_DIR}/%/results/bw/store/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc | STORE_BW_DIRS
+${BUILD_DIR}/%/results/bw/store/store-byte-stream.trc : \
+	${BUILD_DIR}/%/main.trc
+
+	mkdir -p $(dir $@)
 	python3 scripts/common/key_stream.py -k=St --isa=$(ISA) < $< > $@
 
 # 			-------------- INSTRUCTION PATTERN DETECTION ---------------

@@ -35,7 +35,7 @@ args = parser.parse_args() # ISA argument stored in args.isa
 
 #   Iterate through the instruction stream and output the byte stream
 def print_key_stream(all_instrs):
-    print("Stream of values associated with the key: "+args.key)
+    # print("Stream of values associated with the key: "+args.key)
     for line in sys.stdin:
         words = line.split()
         insn_name = words[4]

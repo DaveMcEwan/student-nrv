@@ -16,26 +16,32 @@
 
 import sys
 import argparse
-import scipy
+import numpy as np
+import json
 
 # Script arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--window", help="Moving Average window size")
-parser.add_argument("-f", "--ignore_first", \
-    help="Set to True to ignore the first line")
+parser.add_argument("-l", "--sizedump", help="Output file for the number of \
+    instructions to facilitate processing in other scripts.")
 args = parser.parse_args()
 
-# Moving average window function
-def moving_average_scipy(input_stream):
-    avg = scipy.convolve(input_stream, [1]*int(args.window), 'same') / int(args.window)
-    print( "Byte stream trace, moving average window size = "+args.window)
-    print(*avg, sep='\n') # Print each value on a new line
-    # return list(avg)
-
 def main():
-    input = sys.stdin.readlines()[1:] if args.ignore_first else sys.stdin.readlines()
-    input_floats = [float(x) for x in input]
-    moving_average_scipy(input_floats)
+    # Initialise Numpy array window
+    window_array = np.zeros([int(args.window)])
+
+    # Counter used to determine how many lines there are
+    counter = 0
+    for value in sys.stdin:
+        counter += 1
+        window_array[0] = float(value)
+        window_array = np.roll(window_array, -1)
+
+        print(sum(window_array)/float(args.window))
+
+    if args.sizedump:
+        with open(args.sizedump, 'w') as dump:
+            dump.write(json.dumps(counter))
 
 if __name__ == "__main__":
     main()
