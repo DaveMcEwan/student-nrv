@@ -207,6 +207,9 @@ LOAD_BW_64_TRC	  := $(addsuffix load-bw-64.JSON,${LOAD_BW_DIRS})
 LOAD_BW_128	  	  := $(addsuffix load-bw-128.pdf,${LOAD_BW_DIRS})
 LOAD_BW_128_TRC	  := $(addsuffix load-bw-128.JSON,${LOAD_BW_DIRS})
 
+LOAD_BW_32768	  := $(addsuffix load-bw-32768.pdf,${LOAD_BW_DIRS})
+LOAD_BW_32768_TRC := $(addsuffix load-bw-32768.JSON,${LOAD_BW_DIRS})
+
 STORE_BW_2		  := $(addsuffix store-bw-2.pdf,${STORE_BW_DIRS})
 STORE_BW_2_TRC	  := $(addsuffix store-bw-2.JSON,${STORE_BW_DIRS})
 
@@ -227,6 +230,9 @@ STORE_BW_64_TRC	  := $(addsuffix store-bw-64.JSON,${STORE_BW_DIRS})
 
 STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_DIRS})
 STORE_BW_128_TRC  := $(addsuffix store-bw-128.JSON,${STORE_BW_DIRS})
+
+STORE_BW_32768	   := $(addsuffix store-bw-32768.pdf,${STORE_BW_DIRS})
+STORE_BW_32768_TRC := $(addsuffix store-bw-32768.JSON,${STORE_BW_DIRS})
 
 #		----------------- PATTERN DETECTION TARGETS -----------------
 # Directories
@@ -249,10 +255,10 @@ REG_ACCESS_DIRS 	  := $(addsuffix reg_accesses/,${RESULT_DIRS})
 
 # Target display files
 # TODO : Adjust depending on the reg_display outputs
-REG_ACCESS_DISPLAY	  := $(addsuffix counters.pdf,${REG_ACCESS_DIRS})
+REG_ACCESS_DISPLAY	  := $(addsuffix counters_dist.pdf,${REG_ACCESS_DIRS})
 
 # Target files
-REG_ACCESS_COUNTERS   := $(addsuffix counters.txt,${REG_ACCESS_DIRS})
+REG_ACCESS_COUNTERS   := $(addsuffix counters.JSON,${REG_ACCESS_DIRS})
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
@@ -655,12 +661,12 @@ display_load_bw_all display_store_bw_all
 # Display all
 .PHONY: display_load_bw_all
 display_load_bw_all	: $(LOAD_BW_2) $(LOAD_BW_4) $(LOAD_BW_8) \
-${LOAD_BW_16} ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128}
+${LOAD_BW_16} ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} ${LOAD_BW_32768}
 
 # Individual load targets for displaying
 .PHONY: display_load_bw_2 display_load_bw_4 display_load_bw_8
 .PHONY: display_load_bw_16 display_load_bw_32 display_load_bw_64
-.PHONY: display_load_bw_128
+.PHONY: display_load_bw_128 display_load_bw_32768
 display_load_bw_2 	: ${LOAD_BW_2}
 display_load_bw_4 	: ${LOAD_BW_4}
 display_load_bw_8 	: ${LOAD_BW_8}
@@ -668,18 +674,21 @@ display_load_bw_16 	: ${LOAD_BW_16}
 display_load_bw_32 	: ${LOAD_BW_32}
 display_load_bw_64 	: ${LOAD_BW_64}
 display_load_bw_128 : ${LOAD_BW_128}
+display_load_bw_32768 : ${LOAD_BW_32768}
 
 # Grouped load targets
-.PHONY: display_load_bw_small display_load_bw_medium display_load_bw_load
+.PHONY: display_load_bw_small display_load_bw_medium \
+display_load_bw_load display_load_bw_very_large
 display_load_bw_small  : ${LOAD_BW_2} ${LOAD_BW_4}
 display_load_bw_medium : ${LOAD_BW_8} ${LOAD_BW_16} ${LOAD_BW_32}
 display_load_bw_large  : ${LOAD_BW_64} ${LOAD_BW_128}
+display_load_bw_very_large : ${LOAD_BW_32768}
 
 # Target 	 :	bw/load/load-bw-n.pdf = LOAD_BW_N
 # Dependency :  bw/load/load-bw-n.trc = LOAD_BW_N_TRC
 .SECONDEXPANSION:
 ${LOAD_BW_2} ${LOAD_BW_4} ${LOAD_BW_8} ${LOAD_BW_16} \
-${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
+${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} ${LOAD_BW_32768} \
 	: $$(subst .pdf,.JSON,$$@) | LOAD_BW_DIRS
 
 	python3 scripts/display/line_graph.py -p=mov_avg \
@@ -688,12 +697,13 @@ ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
 
 .PHONY: avg_load_bw_all
 avg_load_bw_all : ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} \
-${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
+${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
+${LOAD_BW_32768_TRC}
 
 # Individual load targets for average trace calculations
 .PHONY: avg_load_bw_2 avg_load_bw_4 avg_load_bw_8
 .PHONY: avg_load_bw_16 avg_load_bw_32 avg_load_bw_64
-.PHONY: avg_load_bw_128
+.PHONY: avg_load_bw_128 avg_load_bw_32768
 avg_load_bw_2 	: ${LOAD_BW_2_TRC}
 avg_load_bw_4 	: ${LOAD_BW_4_TRC}
 avg_load_bw_8 	: ${LOAD_BW_8_TRC}
@@ -701,18 +711,21 @@ avg_load_bw_16 	: ${LOAD_BW_16_TRC}
 avg_load_bw_32 	: ${LOAD_BW_32_TRC}
 avg_load_bw_64 	: ${LOAD_BW_64_TRC}
 avg_load_bw_128 : ${LOAD_BW_128_TRC}
+avg_load_bw_32768 : ${LOAD_BW_32768_TRC}
 
 # Grouped load targets
-.PHONY: avg_load_bw_small avg_load_bw_medium avg_load_bw_load
+.PHONY: avg_load_bw_small avg_load_bw_medium \
+avg_load_bw_load avg_load_bw_very_large
 avg_load_bw_small  : ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC}
 avg_load_bw_medium : ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC}
 avg_load_bw_large  : ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
+avg_load_bw_very_large : ${LOAD_BW_32768_TRC}
 
 # Target 	 :	bw/load/load-bw-n.trc = LOAD_BW_N_TRC
 # Dependency :  bw/load/load-byte-stream.trc = LOAD_BYTE_STREAMS
 .SECONDEXPANSION:
 ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} \
-${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
+${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} ${LOAD_BW_32768_TRC} \
 	: $$(addsuffix load-byte-stream.JSON, $$(dir $$@)) | LOAD_BW_DIRS
 	
 	python3 scripts/common/moving_average.py \
@@ -724,12 +737,12 @@ ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
 # Display all
 .PHONY: display_store_bw_all
 display_store_bw_all	: $(STORE_BW_2) $(STORE_BW_4) $(STORE_BW_8) \
-${STORE_BW_16} ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128}
+${STORE_BW_16} ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} ${STORE_BW_32768}
 
 # Individual store targets for displaying
 .PHONY: display_store_bw_2 display_store_bw_4 display_store_bw_8
 .PHONY: display_store_bw_16 display_store_bw_32 display_store_bw_64
-.PHONY: display_store_bw_128
+.PHONY: display_store_bw_128 display_store_bw_32768
 display_store_bw_2 	 : ${STORE_BW_2}
 display_store_bw_4 	 : ${STORE_BW_4}
 display_store_bw_8 	 : ${STORE_BW_8}
@@ -737,16 +750,19 @@ display_store_bw_16  : ${STORE_BW_16}
 display_store_bw_32  : ${STORE_BW_32}
 display_store_bw_64  : ${STORE_BW_64}
 display_store_bw_128 : ${STORE_BW_128}
+display_store_bw_32768 : ${STORE_BW_32768}
 
 # Grouped store targets
-.PHONY: display_store_bw_small display_store_bw_medium display_store_bw_store
+.PHONY: display_store_bw_small display_store_bw_medium \
+display_store_bw_store display_store_bw_very_large 
 display_store_bw_small  : ${STORE_BW_2} ${STORE_BW_4}
 display_store_bw_medium : ${STORE_BW_8} ${STORE_BW_16} ${STORE_BW_32}
 display_store_bw_large  : ${STORE_BW_64} ${STORE_BW_128}
+display_store_bw_very_large : ${STORE_BW_32768}
 
 .SECONDEXPANSION:
 ${STORE_BW_2} ${STORE_BW_4} ${STORE_BW_8} ${STORE_BW_16} \
-${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
+${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} ${STORE_BW_32768} \
 	: $$(addsuffix .JSON, $$(basename $$@)) | STORE_BW_DIRS
 
 	python3 scripts/display/line_graph.py -p=mov_avg \
@@ -755,7 +771,8 @@ ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
 
 .PHONY: avg_store_bw_all
 avg_store_bw_all : ${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} \
-${STORE_BW_16_TRC} ${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
+${STORE_BW_16_TRC} ${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} \
+${STORE_BW_32768_TRC}
 
 # Individual store targets for average trace calculations
 .PHONY: avg_store_bw_2 avg_store_bw_4 avg_store_bw_8
@@ -768,16 +785,18 @@ avg_store_bw_16  : ${STORE_BW_16_TRC}
 avg_store_bw_32  : ${STORE_BW_32_TRC}
 avg_store_bw_64  : ${STORE_BW_64_TRC}
 avg_store_bw_128 : ${STORE_BW_128_TRC}
+avg_store_bw_32768 : ${STORE_BW_32768}
 
 # Grouped store targets
 .PHONY: avg_store_bw_small avg_store_bw_medium avg_store_bw_store
 avg_store_bw_small  : ${STORE_BW_2_TRC} ${STORE_BW_4_TRC}
 avg_store_bw_medium : ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} ${STORE_BW_32_TRC}
 avg_store_bw_large  : ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
+avg_store_bw_very_large : ${STORE_BW_32768_TRC}
 
 .SECONDEXPANSION:
 ${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} \
-${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} \
+${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} ${STORE_BW_32768_TRC} \
 	: $$(addsuffix store-byte-stream.JSON, $$(dir $$@))
 	
 	mkdir -p $(dir $@)
@@ -876,22 +895,29 @@ ${BUILD_DIR}/%/results/insn_sequences/raw/patterns.JSON : \
 
 # 				  -------------- REGISTER ACCESSES ---------------
 
-# .PHONY: display_reg_accesses
-# display_reg_accesses:
+.PHONY: display_reg_accesses
+display_reg_accesses: ${REG_ACCESS_DISPLAY}
+
+$(BUILD_DIR)/%/results/reg_accesses/counters_dist.pdf \
+$(BUILD_DIR)/%/results/reg_accesses/counters_rs.pdf \
+$(BUILD_DIR)/%/results/reg_accesses/counters_rd.pdf : \
+	$$(addsuffix counters.JSON, $$(dir $$@))
+
+	python3 scripts/reg_accesses/reg_display.py \
+	-j=$< --img=$(addsuffix counters, $(dir $@))
 
 
-# .PHONY: reg_accesses
-# reg_accesses : ${REG_ACCESS_DIRS}
+.PHONY: reg_accesses
+reg_accesses : ${REG_ACCESS_COUNTERS}
 
-# $(BUILD_DIR)/%/results/reg_accesses/counters.txt : \
-# 	$(BUILD_DIR)/%/main.trc
+$(BUILD_DIR)/%/results/reg_accesses/counters.JSON : \
+	$(BUILD_DIR)/%/main.trc
 
-# 	mkdir -p $(dir $@)
+	mkdir -p $(dir $@)
 
-# 	python3 scripts/reg_accesses/reg_accesses.py \
-# 	--isa=${ISA} \
-# 	-j=$(subst .JSON,.txt,$@) \
-# 	< $<
+	python3 scripts/reg_accesses/reg_accesses.py \
+	--isa=${ISA} -j=$@ \
+	< $< > $(subst .JSON,.txt,$@)
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
