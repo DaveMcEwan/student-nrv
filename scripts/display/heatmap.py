@@ -68,6 +68,8 @@ def parse_pairs_heatmap(pairs_counter_list, size):
 def plot_heatmap(arr, y_labels, x_labels):
     fig, ax = plt.subplots()
 
+    plt.rcParams.update({'font.size': 6})
+
     fig.set_size_inches(10,10)
     ax.imshow(arr)
 
