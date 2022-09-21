@@ -5,6 +5,7 @@
 
 .SECONDARY: # Used to stop make from deleting intermediate files
 
+default: third_party_downloads
 # Default target purely for Github actions - used to verify if Spike simulation
 #	completes correctly without logging anything (which takes up hours and
 #	consumes a lot of space)
@@ -12,7 +13,6 @@
 
 # Default targets are just the final ones (not including intermediate targets)
 # default: assembly
-default: third_party_downloads
 default: disassembly
 # default: histogram
 default: extract_main
@@ -508,41 +508,36 @@ TFLITE_MICRO_KERNELS_DIRS:
 	mkdir -p ${TFLITE_MICRO_KERNELS_DIRS}
 
 SRC_TFLITE_DOWNLOADS_DIR:
-	@echo Making SRC_TFLITE_DOWNLOADS_DIR
 	mkdir -p ${SRC_TFLITE_DOWNLOADS_DIR}
 
 # --------------------------- THIRD PARTY DOWNLOADS  --------------------------
-FLATBUFFERS = $(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers
-
-$(FLATBUFFERS): SRC_TFLITE_DOWNLOADS_DIR
+$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers: SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/flatbuffers_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
 
-KISSFFT = $(SRC_TFLITE_DOWNLOADS_DIR)/kissfft
-
-$(KISSFFT): SRC_TFLITE_DOWNLOADS_DIR
+$(SRC_TFLITE_DOWNLOADS_DIR)/kissfft: SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/kissfft_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
 
-PIGWEED = $(SRC_TFLITE_DOWNLOADS_DIR)/pigweed
-
-$(PIGWEED): SRC_TFLITE_DOWNLOADS_DIR
+$(SRC_TFLITE_DOWNLOADS_DIR)/pigweed: SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/pigweed_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
 
-GEMMLOWP 	 = $(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp
 GEMMLOWP_URL = "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
 GEMMLOWP_MD5 = "7e8191b24853d75de2af87622ad293ba"
 
-$(GEMMLOWP): SRC_TFLITE_DOWNLOADS_DIR
+$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp: SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/download_and_extract.sh $(GEMMLOWP_URL) $(GEMMLOWP_MD5) $@
 
-RUY		= $(SRC_TFLITE_DOWNLOADS_DIR)/ruy
 RUY_URL = "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
 RUY_MD5 = "abf7a91eb90d195f016ebe0be885bb6e"
 
-$(RUY): SRC_TFLITE_DOWNLOADS_DIR
+$(SRC_TFLITE_DOWNLOADS_DIR)/ruy: SRC_TFLITE_DOWNLOADS_DIR
 	$(TOOLS_DIR)/download_and_extract.sh $(RUY_URL) $(RUY_MD5) $@
 
 .PHONY: third_party_downloads
-third_party_downloads : $(FLATBUFFERS) $(KISSFFT) $(PIGWEED) $(GEMMLOWP) $(RUY)
+third_party_downloads : $(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers \
+$(SRC_TFLITE_DOWNLOADS_DIR)/kissfft \
+$(SRC_TFLITE_DOWNLOADS_DIR)/pigweed \
+$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp \
+$(SRC_TFLITE_DOWNLOADS_DIR)/ruy
 
 # -------------------------------- GENERAL DEPENDENCIES --------------------------------
 
