@@ -181,18 +181,18 @@ WINDOW_SIZE = $(word 3, $(subst -, ,$(basename $(notdir $@))))
 #		when simulating,
 #		- Script analysis - Determines what instructions and registers to look
 #		at when parsing.
-CFLAGS = -march=${ISA}
+CCFLAGS = -march=${ISA}
 
 # ABI - Application Binary Interface
 #	- Specifies the integer and floating-point calling convention
 #	- Determines the bit sizes of the types
-CFLAGS += -mabi=${ABI}
+CCFLAGS += -mabi=${ABI}
 
 # mcmodel -  Code model
 #	- Determines the code model (medlow/medium-low or medany/medium-any)
 #	- Used to determine conditions for the address range where the program
 #	and it's statically defifned symbols can be placed
-CFLAGS += -mcmodel=medany
+CCFLAGS += -mcmodel=medany
 
 # freestanding program
 #	- Tells the compiler that the standard library may not exist and so
@@ -201,28 +201,28 @@ CFLAGS += -mcmodel=medany
 #	- Needed so that we can use functions provided by syscalls.c that use
 #	the HTIF (Host/Target Interface) which the Spike simulator will be
 #	able to simulate
-CFLAGS += -ffreestanding
+CCFLAGS += -ffreestanding
 
 # Static libraries
 #	- Forces program to use static libraries
 #	- Needed to allow us to specifically state what libraries we want present in
 #	the program
-CFLAGS += -static
-CFLAGS += -lgcc
+CCFLAGS += -static
+CCFLAGS += -lgcc
 
 # No standard libraries
 #	- Tells the program to not use the standard system startup files or libraries 
 #	when linking
 #	- Allows us to use our own linker scripts
-CFLAGS += -nostdlib
+CCFLAGS += -nostdlib
 
 # No standard startup files
 #	- Tells the compiler to not use the standard system startup files when linking
 #	- Allows us to use our own startup files which work unlike the standard ones
 #	in setting up the system so that it can be simulated in Spike properly.
-CFLAGS += -nostartfiles
+CCFLAGS += -nostartfiles
 
-CXXFLAGS = \
+CCFLAGS += \
 	-std=c++11 \
 	-fno-rtti \
 	-fno-exceptions \
@@ -240,9 +240,6 @@ CXXFLAGS = \
 	-Wextra \
 	-Wmissing-field-initializers \
 	-Wstrict-aliasing \
-	-march=${ISA} \
-	-mabi=${ABI} \
-	-mcmodel=medany \
 	-mexplicit-relocs \
 	-fno-builtin-printf \
 	-DTF_LITE_MCU_DEBUG_LOG \
@@ -257,7 +254,7 @@ CXXFLAGS = \
 CORE_OPTIMIZATION_LEVEL = -Os
 KERNEL_OPTIMIZATION_LEVEL = -O2
 
-CXX_INCLUDES = -I. \
+CC_INCLUDES = -I. \
 	-I$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp \
 	-I$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers/include \
 	-I$(SRC_TFLITE_DOWNLOADS_DIR)/ruy \
@@ -396,15 +393,15 @@ $(BUILD_DIR)/%/executable.elf: \
 	${SRC_COMMON_DIR}/entry.S
 	
 	mkdir -p $(dir $@)
-	$(CC) -march=$(ISA) -mabi=$(ABI) $(CXX_INCLUDES) -o $@ $^ \
-	-Wl,--fatal-warnings -Wl,--gc-sections -T$(LINKER_SCRIPT) -nostartfiles -lm -lgcc -lm
-
-# 	@echo Executable produced
+	$(CC) -march=$(ISA) -mabi=$(ABI) -Wl,--fatal-warnings -Wl,--gc-sections \
+	-nostartfiles -lm -lgcc \
+	$(CC_INCLUDES) -T$(LINKER_SCRIPT) \
+	-o $@ $^
 
 # syscalls object file
 ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c
 	mkdir -p $(dir $@)
-	${CC} $(CFLAGS) -I./include -w -c $< -o $@ 
+	${CC} ${CC_INCLUDES} -I./include -w -c $< -o $@ 
 
 # First dependency of this recipe is dependent on information in the file path of the
 #	recipe which must be expanded into $*. Secondary expansion is used to then access

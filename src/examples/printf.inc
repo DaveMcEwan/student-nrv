@@ -14,4 +14,4 @@ $(BUILD_DIR)/%/printf.a : $(O_FILE)
 # MAIN
 $(BUILD_DIR)/%/printf.o : $(SRC_DIR)/examples/printf.cc
 	mkdir -p $(dir $@)
-	$(CC) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
+	$(CC) $(CCFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CC_INCLUDES) -c $< -o $@
