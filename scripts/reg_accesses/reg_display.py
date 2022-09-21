@@ -30,7 +30,6 @@ def display_general_barchart(name, counter_list):
     l_size = min(len(counter_list), 10)
     keys = [x[0] for x in counter_list[:l_size]]
     counters = [x[1] for x in counter_list[:l_size]]
-    print(counters)
 
     plt.figure()
     plt.bar(range(l_size), counters)

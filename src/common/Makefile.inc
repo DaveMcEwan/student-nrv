@@ -9,9 +9,89 @@
 # $(BUILD_DIR)/%/common/<File name>.o : ${SRC_TFLITE_KERNELS_DIR}/<File name>.cc
 # 	$(CXX) $(CXXFLAGS) $(CORE_OPTIMIZATION_LEVEL) $(CXX_INCLUDES) -c $< -o $@
 
-COMMON_TFLITE 				:= common/tensorflow/lite
-COMMON_TFLITE_MICRO 		:= $(COMMON_TFLITE)/micro
-COMMON_TFLITE_MICRO_KERNELS := $(COMMON_TFLITE_MICRO)/kernels
+TFLITE_DIRS 				  := $(addsuffix tensorflow/lite/,${COMMON_DIRS})
+TFLITE_C_DIRS 				  := $(addsuffix c/,${TFLITE_DIRS})
+TFLITE_CORE_API_DIRS		  := $(addsuffix core/api/,${TFLITE_DIRS})
+TFLITE_SCHEMA_DIRS			  := $(addsuffix schema/,${TFLITE_DIRS})
+TFLITE_KERNELS_DIRS			  := $(addsuffix kernels/,${TFLITE_DIRS})
+TFLITE_KERNELS_INTERNAL_DIRS  := $(addsuffix internal/,${TFLITE_KERNELS_DIRS})
+
+TFLITE_MICRO_DIRS 			  := $(addsuffix micro/,${TFLITE_DIRS})
+TFLITE_MICRO_AA_DIRS		  := $(addsuffix arena_allocator/,${TFLITE_MICRO_DIRS})
+TFLITE_MICRO_MP_DIRS		  := $(addsuffix memory_planner/,${TFLITE_MICRO_DIRS})
+TFLITE_MICRO_RISCV_DIRS		  := $(addsuffix riscv32_mcu/,${TFLITE_MICRO_DIRS})
+TFLITE_MICRO_KERNELS_DIRS 	  := $(addsuffix kernels/,${TFLITE_MICRO_DIRS})
+
+COMMON_TFLITE 				  := common/tensorflow/lite
+COMMON_TFLITE_MICRO 		  := $(COMMON_TFLITE)/micro
+COMMON_TFLITE_MICRO_KERNELS   := $(COMMON_TFLITE_MICRO)/kernels
+
+#			--------------------- TFLITE TARGETS ---------------------
+MICROLITE_CC_SRCS := \
+$(wildcard src/tensorflow/lite/micro/*.cc) \
+$(wildcard src/tensorflow/lite/micro/arena_allocator/*.cc) \
+$(wildcard src/tensorflow/lite/micro/memory_planner/*.cc) \
+$(wildcard src/tensorflow/lite/micro/riscv32_mcu/*.cc)
+
+# Written using secondary expansion so that the pattern rule can be accessed in
+#	the dependency list for recipes
+MICROLITE_LIB_OBJS := $$(subst .cc,.o,\
+	$$(subst src/,$$(BUILD_DIR)/$$*/../common/,$$(MICROLITE_CC_SRCS)))
+
+# Don't include the '/../' if we want to have the object files be made into a
+#	library file first
+
+TFLITE_CC_SRCS := \
+$(wildcard src/tensorflow/lite/c/common.cc) \
+$(wildcard src/tensorflow/lite/core/api/*.cc) \
+$(wildcard src/tensorflow/lite/schema/*.cc) \
+$(wildcard src/tensorflow/lite/kernels/*.cc) \
+$(wildcard src/tensorflow/lite/kernels/internal/*.cc)
+
+TFLITE_LIB_OBJS := $$(subst .cc,.o,\
+	$$(subst src/,$$(BUILD_DIR)/$$*/../common/,$$(TFLITE_CC_SRCS)))
+
+MICROLITE_CC_KERNEL_SRCS := $(wildcard src/tensorflow/lite/micro/kernels/*.cc)
+
+MICROLITE_KERNEL_LIB_OBJS := $$(subst .cc,.o,\
+	$$(subst src/,$$(BUILD_DIR)/$$*/../common/,$$(MICROLITE_CC_KERNEL_SRCS)))
+
+#	------------------------------ DIRECTORIES --------------------------------
+# Targets to form all needed directories in one to avoid having multiple separate 
+#	mkdir commands that flood the command line.
+TFLITE_DIRS:
+	mkdir -p ${TFLITE_DIRS}
+
+TFLITE_C_DIRS:
+	mkdir -p ${TFLITE_C_DIRS}
+
+TFLITE_CORE_API_DIRS:
+	@echo Making all TFLITE_CORE_API_DIRS
+	mkdir -p ${TFLITE_CORE_API_DIRS}
+
+TFLITE_SCHEMA_DIRS:
+	mkdir -p ${TFLITE_SCHEMA_DIRS}
+
+TFLITE_KERNELS_DIRS:
+	mkdir -p ${TFLITE_KERNELS_DIRS}
+
+TFLITE_KERNELS_INTERNAL_DIRS:
+	mkdir -p ${TFLITE_KERNELS_INTERNAL_DIRS}
+
+TFLITE_MICRO_DIRS:
+	mkdir -p ${TFLITE_MICRO_DIRS}
+
+TFLITE_MICRO_AA_DIRS:
+	mkdir -p ${TFLITE_MICRO_AA_DIRS}
+
+TFLITE_MICRO_MP_DIRS:
+	mkdir -p ${TFLITE_MICRO_MP_DIRS}
+
+TFLITE_MICRO_RISCV_DIRS:
+	mkdir -p ${TFLITE_MICRO_RISCV_DIRS}
+
+TFLITE_MICRO_KERNELS_DIRS:
+	mkdir -p ${TFLITE_MICRO_KERNELS_DIRS}
 
 # GENERAL TFLITE FILES, TFLITE_LIB_OBJS
 $(BUILD_DIR)/%/$(COMMON_TFLITE)/c/common.o : \
