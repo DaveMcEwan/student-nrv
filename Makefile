@@ -92,43 +92,44 @@ R_FNAME		= $(call CSV_COL,6,${row})
 
 # TRACES is a list holding all instruction trace target directory paths which 
 # 	will be used to form the other targets. Formed by looking at all rows of the CSV 
-# 	e.g. build/rv32gc-ilp32-gcc/cv_testcase/nproc-8/testcase.trc
-#		 build/$(isa)-$(abi)-$(compiler)/$(fname)/testcase.trc
+# 	e.g. build/rv32gc-ilp32-gcc/cv_testcase/nproc-8/whole.trc
+#		 build/$(isa)-$(abi)-$(compiler)/$(fname)/whole.trc
 TRACES := $(foreach row,${CSV_ROWS},$\
 	${BUILD_DIR}/$\
 	rv$(call R_XLEN)$(call R_ISA)-$(call R_ABI)-$(call R_COMPILER)/$\
-	$(call R_FNAME)/nproc-$(call R_NPROC)/testcase.trc)
+	$(call R_FNAME)/nproc-$(call R_NPROC)/whole.trc)
 
 # 	Form the other targets using string manipulation with the current target
-# main.trc - Section of instruction trace between where we enter and leave main
-MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
 
-TEST_TRACES	   := $(subst testcase,test,${TRACES})
+# main.trc - Section of instruction trace between where we enter and leave main
+MAIN_TRACES    := $(subst whole,main,${TRACES})
+# test.txt - Stdout from purely simulating the input program without logging.
+#	Used just to check if executables simulate properly without waiting hours
+#	for the logging to complete.
+TEST_TRACES	   := $(subst whole.trc,test.txt,${TRACES})
 
 # 	Directory names - Formed by adjusting the TRACES list
 # nproc - subdirectories used to contain the files associated with
 #	simulating with a specific number of processors
+#	e.g. build/rv32gc-ilp32-gcc/person_detection/nproc-1/
 NPROC_DIRS 	:= $(dir ${TRACES})
+# results - subdirectories for any results/diagrams
+#	e.g. build/rv32gc-ilp32-gcc/person_detection/nproc-1/results
+RESULT_DIRS := $(addsuffix results/,${NPROC_DIRS})
 # fname - subdirectories holding all files related to a single input ML file
+#	e.g. build/rv32gc-ilp32-gcc/person_detection/
 FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
 # common - subdirectory used to store temporary files used by multiple test cases
+#	common to a single architecture configuration
+#	e.g. build/rv32gc-ilp32-gcc/common/
 COMMON_DIRS := $(addsuffix ../common/,${FNAME_DIRS})
-# figures - subdirectories for any figures
-RESULT_DIRS := $(addsuffix results/,${NPROC_DIRS})
-
-LIB_DIRS		:= $(addsuffix lib/,${COMMON_DIRS})
 
 #	Target files
-OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
-# Histograms produced by Spike
-HISTOGRAMS 		   := $(subst .o,.hst,${OBJECTS})
+# Executable to be passed through Spike
 EXECUTABLES 	   := $(addsuffix executable.elf,${FNAME_DIRS})
-ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
-DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
+DISASSEMBLIES	   := $(addsuffix disassembly.dasm,${FNAME_DIRS})
 # (main) section of the disassembly
-MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
-
-TFLITE_LIB	   	   := $(addsuffix lib-tflite-micro.a,${LIB_DIRS})
+MAIN_DISASSEMBLIES := $(subst disassembly,main,${DISASSEMBLIES})
 
 #			--------------------- ML TARGETS ---------------------
 GEN_ML_DIR		:=	${BUILD_DIR}/ml-gen
@@ -159,7 +160,6 @@ XLEN 	 	?= $(findstring 64, $(ISA))
 #	Commands used within recipes that require these variables taken from the
 #		file path using the pattern rule
 CC 		= riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
-CXX 	= riscv$(XLEN)-unknown-elf-g++ # TODO - Check if the compilation works with g++
 OBJDUMP = ${RISCV}/bin/riscv$(XLEN)-unknown-elf-objdump
 SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size
 AR		= riscv$(XLEN)-unknown-elf-ar
@@ -385,16 +385,6 @@ include $(SRC_COMMON_DIR)/Makefile.inc
 include $(SRC_DIR)/examples/printf.inc
 include $(SRC_ML_DIR)/person-detection/Makefile.inc
 
-.PHONY: archive-test
-archive-test: $(TFLITE_LIB)
-
-# TFLite common dependencies : $$(subst .cc,.o,$$(subst src/,$$(BUILD_DIR)/$$*/common/,$$(MICROLITE_CC_KERNEL_SRCS)))
-# .SECONDEXPANSION:
-# $(BUILD_DIR)/%/common/lib/lib-tflite-micro.a: \
-# 	$(MICROLITE_LIB_OBJS) $(TFLITE_LIB_OBJS) $(MICROLITE_KERNEL_LIB_OBJS) \
-# 	| LIB_DIRS $(third_party_downloads)
-# 	$(AR) -r $@ $^
-
 .PHONY: build
 build: ${EXECUTABLES}
 
@@ -406,7 +396,7 @@ $(BUILD_DIR)/%/executable.elf: \
 	${SRC_COMMON_DIR}/entry.S
 	
 	mkdir -p $(dir $@)
-	$(CXX) -march=$(ISA) -mabi=$(ABI) $(CXX_INCLUDES) -o $@ $^ \
+	$(CC) -march=$(ISA) -mabi=$(ABI) $(CXX_INCLUDES) -o $@ $^ \
 	-Wl,--fatal-warnings -Wl,--gc-sections -T$(LINKER_SCRIPT) -nostartfiles -lm -lgcc -lm
 
 # 	@echo Executable produced
@@ -422,65 +412,43 @@ ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c
 #	necessary prefixes and suffixes, forms the file path for the input test case (whose
 #	name is present in the file path)
 
-# --------------------------------- ASSEMBLY ----------------------------------
-# Assembly file produced using the '-S' flag with the compilation line; currently
-#	not being used for any analysis
-
-# .PHONY: assembly
-# assembly: ${ASSEMBLIES}
-
-# # Secondary expansion use explained in the testcase.o recipe
-# .SECONDEXPANSION:
-# ${BUILD_DIR}/%/testcase.S: \
-# 	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
-# 	| FNAME_DIRS
-
-# 	${CC} $(CFLAGS) ${INCLUDES} -S $^ -o $@
-
-# --------------- INSTRUCTION TRACE, DISASSEMBLY and HISTOGRAM ---------------
+# --------------- INSTRUCTION TRACE and DISASSEMBLY ---------------
 
 # Debugging recipe - Verify if simulation completes without logging
 #	the instruction trace
 .PHONY: sim-test
 sim-test: ${TEST_TRACES}
 
-${BUILD_DIR}/%/test.trc: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
+${BUILD_DIR}/%/test.txt: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
 	${SPIKE} -p${N_PROC} --isa=$(ISA) $< > $@
 
 # Instruction trace
 .PHONY: sim
 sim: ${TRACES}
 
-${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
+${BUILD_DIR}/%/whole.trc: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
 	${SPIKE} -p${N_PROC} -l --isa=$(ISA) $< 2> $@
 
 # Disassembly
 .PHONY: disassembly
 disassembly: ${DISASSEMBLIES}
 
-${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/executable.elf | FNAME_DIRS
+${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/executable.elf | FNAME_DIRS
 	${OBJDUMP} -S -D $< > $@
-
-# Histogram produced using the '-g' flag
-.PHONY: histogram
-histogram: ${HISTOGRAMS}
-
-${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/executable.elf | FNAME_DIRS
-	${SPIKE} -g --isa=$(ISA) $< 2> $@
 
 # Reduced instruction trace that only covers the region where we
 #	enter and leave main
 .PHONY: extract_main
 extract_main: ${MAIN_TRACES}
 
-${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc | NPROC_DIRS
+${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/whole.trc | NPROC_DIRS
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
-	sed -n '/${START_ADDRESS}/,/${END_ADDRESS}/p' ${BUILD_DIR}/$*/testcase.trc > $@
+	sed -n '/${START_ADDRESS}/,/${END_ADDRESS}/p' ${BUILD_DIR}/$*/whole.trc > $@
 
 # Reduced disassembly - only covering the main function to then parse the start and end
 #	address from
-${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
+${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../disassembly.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
 # ------------------------ INSTRUCTION TRACE ANALYSIS -------------------------
