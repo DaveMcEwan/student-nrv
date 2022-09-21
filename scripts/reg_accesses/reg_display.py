@@ -8,7 +8,6 @@
 # Run the command : python3 scripts/reg_accesses/reg_display.py \
 #   --isa=rv32ic -j=<input json file from reg_accesses.py> \
 #   --img=<output png prefix>
-#   < scripts/example.trc
 #   while in the base directory
 
 # Produces multiple figures, each with their own suffix
@@ -28,17 +27,14 @@ def display_general_barchart(name, counter_list):
     if not isinstance(counter_list, list):
         return
 
-    l_size = len(counter_list) if len(counter_list) < 10 else 10
+    l_size = min(len(counter_list), 10)
     keys = [x[0] for x in counter_list[:l_size]]
     counters = [x[1] for x in counter_list[:l_size]]
+    print(counters)
 
     plt.figure()
     plt.bar(range(l_size), counters)
     plt.xticks(range(l_size), keys)
-    if len(counters):
-        plt.yticks(range(counters[0] + 1))
-    else: # Case for empty lists
-        plt.yticks([0, 1])
     
     if name == "rs":
         plt.title("Registers used most frequently as source registers")
@@ -49,7 +45,9 @@ def display_general_barchart(name, counter_list):
         plt.xlabel("Registers")
         plt.ylabel("Number of times read to")
     
-    plt.savefig(args.img+"_"+name)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 10)
+    plt.savefig(args.img+"_"+name+".pdf")
 
 # Function used to see how much each register available in the system was used as a source or destination register
 def reg_distribution_plot(all_regs):
@@ -66,7 +64,9 @@ def reg_distribution_plot(all_regs):
     plt.ylabel("Frequency")
     plt.legend()
 
-    plt.savefig(args.img+"_dist")
+    fig = plt.gcf()
+    fig.set_size_inches(20, 10)
+    plt.savefig(args.img+"_dist.pdf")
 
 def main():
     # Read in the associated lists and store in the data dictionary

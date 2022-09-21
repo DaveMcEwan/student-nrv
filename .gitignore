@@ -1,5 +1,6 @@
 
 build/*
+src/tensorflow/lite/micro/downloads/
 
 # Prerequisites
 *.d

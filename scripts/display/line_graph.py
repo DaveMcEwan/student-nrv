@@ -17,12 +17,13 @@
 import sys
 import argparse
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Script arguments
 parser = argparse.ArgumentParser()
+parser.add_argument("-l", "--sizedump", help="File with the counter detailing \
+    how many lines to expect.")
 parser.add_argument("-i", "--img", help="Save path for the pdf figure") # File path stored in args.img
-parser.add_argument("-f", "--ignore_first", help="Set to True to ignore the first line") # args.ignore_first
-
 parser.add_argument("-p", "--profile", help="Display profile, choose from: \
     mov_avg or leave empty for default title/axis names") # args.profile
 parser.add_argument("-n", "--window", help="Moving Average window size") # args.window
@@ -30,9 +31,7 @@ args = parser.parse_args()
 
 # Function to display the line graph
 def display_graph(avg_stream):
-    time_axis = list(range(len(avg_stream)))
-
-    plt.plot(time_axis, avg_stream)
+    plt.plot(avg_stream)
 
     # Determine axis names based on the input profile
     # Add future profiles here
@@ -48,8 +47,29 @@ def display_graph(avg_stream):
     plt.savefig(args.img)
 
 def main():
-    input = sys.stdin.readlines()[1:] if args.ignore_first else sys.stdin.readlines()
-    display_graph(input)
+    line_count = 0
+    if args.sizedump:
+        with open(args.sizedump, 'r') as dump:
+            line_count = int(dump.readline())
+    else:
+        print("-l/--sizedump flag not specified. This must point to a file \
+            which just contains the number of lines in the input stream")
+        return 1
+    
+    values = np.empty([line_count])
+    index = 0
+
+    value = sys.stdin.read(3)
+    # for num, line in enumerate(sys.stdin.read(3)):
+    while value:
+        values[index] = value
+        # Skip next value, allows us to sample without having to read all
+        #   of the data in in the first place.
+        sys.stdin.read(3)
+        value = sys.stdin.read(3)
+        index += 1
+
+    display_graph(values)
 
 if __name__ == "__main__":
     main()
