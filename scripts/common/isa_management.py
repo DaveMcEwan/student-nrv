@@ -43,12 +43,16 @@ def check_isa(isa, keys=None, reg=False):
         "The 5th character can only be either i, e or g"
 
     # Check for 'g' which indicates the multiple extensions need to be included
-    if isa[4].lower() == 'i':
-        reg_dict.update(convert_reg("rv"+XLEN+"i"))
-    elif isa[4].lower() == "e":
-        reg_dict.update(convert_reg("rv"+XLEN+"e"))
-    elif isa[4].lower() == 'g':
-        pass
+    reg_dict.update(convert_reg("rv"+XLEN+char_four))
+    # TODO : Update so that rv32g.reg has the additional registers added by
+    #   the other extensions
+
+    # if isa[4].lower() == 'i':
+    #     reg_dict.update(convert_reg("rv"+XLEN+"i"))
+    # elif isa[4].lower() == "e":
+    #     reg_dict.update(convert_reg("rv"+XLEN+"e"))
+    # elif isa[4].lower() == 'g':
+    #     reg_dict.update(convert_reg("rv"+XLEN+"g"))
         # Include the extensions included with 'g'. Currently commented out for
         #   functionality purposes as the .isa files for these extensions have not
         #   yet been made. Other code is commented for the same reason below this.

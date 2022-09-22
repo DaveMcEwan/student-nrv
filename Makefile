@@ -251,9 +251,6 @@ CCFLAGS += \
 	-DTF_LITE_USE_GLOBAL_MIN \
 	-DTF_LITE_USE_GLOBAL_MAX
 
-CORE_OPTIMIZATION_LEVEL = -Os
-KERNEL_OPTIMIZATION_LEVEL = -O2
-
 CC_INCLUDES = -I. \
 	-I$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp \
 	-I$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers/include \
@@ -262,84 +259,44 @@ CC_INCLUDES = -I. \
 	-I$(SRC_DIR) \
 	-I${GEN_ML_DIR}
 
-LDFLAGS = -T${LINKER_SCRIPT}
+CORE_OPTIMIZATION_LEVEL = -Os
+KERNEL_OPTIMIZATION_LEVEL = -O2
 
-#	Testing
-print_all: TRACES
-	@echo TRACES
-	@echo ${TRACES}
-	@echo
-	@echo MAIN_TRACES
-	@echo ${MAIN_TRACES}
-	@echo
-	@echo NPROC_DIRS
-	@echo ${NPROC_DIRS}
-	@echo
-	@echo FNAME_DIRS
-	@echo ${FNAME_DIRS}
-	@echo
-	@echo HISTOGRAMS
-	@echo ${HISTOGRAMS}
-	@echo
-	@echo OBJECTS
-	@echo ${OBJECTS}
-	@echo
-	@echo EXECUTABLES
-	@echo ${EXECUTABLES}
-	@echo
-	@echo DISASSEMBLIES
-	@echo ${DISASSEMBLIES}
-	@echo
-	@echo MAIN_DISASSEMBLIES
-	@echo ${MAIN_DISASSEMBLIES}
-
-TRACES:
-	mkdir -p ${FNAME_DIRS}
-
-# Details of all recipes can be found in /doc/dependencies.md
 
 #	------------------------------ DIRECTORIES --------------------------------
 # Targets to form all needed directories in one to avoid having multiple separate 
 #	mkdir commands that flood the command line.
 
-# .PHONY: NPROC_DIRS
+TRACES:
+	mkdir -p ${FNAME_DIRS}
+
 NPROC_DIRS:
-	@echo Making all NPROC_DIRS
 	mkdir -p ${NPROC_DIRS}
 
-# .PHONY: FNAME_DIRS
 FNAME_DIRS:
-	@echo Making all FNAME_DIRS
 	mkdir -p ${FNAME_DIRS}
 
 # .PHONY: COMMON_DIRS
 COMMON_DIRS:
-	@echo Making all COMMON_DIRS
 	mkdir -p ${COMMON_DIRS}
 
 # .PHONY: RESULT_DIRS
 RESULT_DIRS:
-	@echo Making all RESULT_DIRS
 	mkdir -p ${RESULT_DIRS}
 
 LOAD_BW_DIRS:
-	@echo Making all LOAD_BW_DIRS
 	mkdir -p ${LOAD_BW_DIRS}
 
 STORE_BW_DIRS:
-	@echo Making all STORE_BW_DIRS
 	mkdir -p ${STORE_BW_DIRS}
 
 RAW_INSN_SEQ_DIRS:
-	@echo Making all RAW_INSN_SEQ_DIRS
 	mkdir -p ${RAW_INSN_SEQ_DIRS}
 
 FILTERED_INSN_SEQ_DIRS:
-	@echo Making all FILTERED_INSN_SEQ_DIRS
 	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
 
 LIB_DIRS:
-	@echo Making all LIB_DIRS
 	mkdir -p ${LIB_DIRS}
 
 SRC_TFLITE_DOWNLOADS_DIR:
@@ -375,7 +332,7 @@ $(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp \
 $(SRC_TFLITE_DOWNLOADS_DIR)/ruy
 
 # -------------------------------- GENERAL DEPENDENCIES --------------------------------
-
+# Details of all recipes can be found in /doc/dependencies.md
 # ----------------------------------- BUILD -----------------------------------
 # Recipes for all of the default common TFLite 
 include $(SRC_COMMON_DIR)/Makefile.inc
@@ -385,6 +342,11 @@ include $(SRC_ML_DIR)/person-detection/Makefile.inc
 .PHONY: build
 build: ${EXECUTABLES}
 
+# First dependency of this recipe is dependent on information in the file path of the
+#	recipe which must be expanded into $*. Secondary expansion is used to then access
+#	the file path through the pattern rule which after parsing a bit and adding the 
+#	necessary prefixes and suffixes, forms the file path for the input test case (whose
+#	name is present in the file path)
 .SECONDEXPANSION:
 $(BUILD_DIR)/%/executable.elf: \
 	$(BUILD_DIR)/%/../common/syscalls.o \
@@ -401,13 +363,7 @@ $(BUILD_DIR)/%/executable.elf: \
 # syscalls object file
 ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c
 	mkdir -p $(dir $@)
-	${CC} ${CC_INCLUDES} -I./include -w -c $< -o $@ 
-
-# First dependency of this recipe is dependent on information in the file path of the
-#	recipe which must be expanded into $*. Secondary expansion is used to then access
-#	the file path through the pattern rule which after parsing a bit and adding the 
-#	necessary prefixes and suffixes, forms the file path for the input test case (whose
-#	name is present in the file path)
+	${CC} ${CC_INCLUDES} -I./include -w -c $< -o $@
 
 # --------------- INSTRUCTION TRACE and DISASSEMBLY ---------------
 
