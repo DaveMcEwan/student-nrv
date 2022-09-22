@@ -276,11 +276,9 @@ NPROC_DIRS:
 FNAME_DIRS:
 	mkdir -p ${FNAME_DIRS}
 
-# .PHONY: COMMON_DIRS
 COMMON_DIRS:
 	mkdir -p ${COMMON_DIRS}
 
-# .PHONY: RESULT_DIRS
 RESULT_DIRS:
 	mkdir -p ${RESULT_DIRS}
 
@@ -363,7 +361,15 @@ $(BUILD_DIR)/%/executable.elf: \
 # syscalls object file
 ${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c
 	mkdir -p $(dir $@)
-	${CC} ${CC_INCLUDES} -I./include -w -c $< -o $@
+	${CC} -march=${ISA} \
+	-mabi=${ABI} \
+	-mcmodel=medany \
+	-ffreestanding \
+	-static \
+	-lgcc \
+	-nostdlib \
+	-nostartfiles \
+	 -I./include -w -c $< -o $@
 
 # --------------- INSTRUCTION TRACE and DISASSEMBLY ---------------
 
