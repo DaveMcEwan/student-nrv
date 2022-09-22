@@ -1,0 +1,4 @@
+XLEN     COMPILER    EXTENSIONS  ABI    N_PROC    FNAME
+32       gcc         gc          ilp32   1         hello_world
+#32      gcc         gc          ilp32   1         person_detection
+#32      gcc         g           ilp32   1         person_detection

@@ -54,7 +54,7 @@ LINKER_SCRIPT 	= link.ld
 # Makefile functions and variables used to parse the input .csv file here
 MK_CSV 			:= ./csv/csv.mk
 # Input CSV file
-CSV 			?= ./csv/config5.csv
+CSV 			?= ./csv/inputs.csv
 
 $(shell echo CSV FNAME currently set to : ${CSV})
 
@@ -138,17 +138,17 @@ GEN_ML_DIR		:=	${BUILD_DIR}/ml-gen
 # Second set of variable names/definitions. This one is formed based on the
 #	pattern rule where the information is taken from the file path of the target.
 
-# Example file path : rv32gc-ilp32-gcc/printf/nproc-2/
+# Example file path : rv32gc-ilp32-gcc/hello_world/nproc-2/
 
 # Splitting up the file path into individual components
 # $* - Pattern rule from which the file path will be determined from
 DIRNAME_SPLIT1 = $(subst -,${space},$*)
 DIRNAME_SPLIT2 = $(subst /,${space}, $(DIRNAME_SPLIT1))
-# The example at this point would then be : rv32gc ilp32 gcc printf nproc 2
+# The example at this point would then be : rv32gc ilp32 gcc hello_world nproc 2
 ISA 		= $(word 1, $(DIRNAME_SPLIT2)) # rv32gc
 ABI			= $(word 2, $(DIRNAME_SPLIT2)) # ilp32
 COMPILER 	= $(word 3, $(DIRNAME_SPLIT2)) # gcc
-FNAME 		= $(word 4, $(DIRNAME_SPLIT2)) # printf
+FNAME 		= $(word 4, $(DIRNAME_SPLIT2)) # hello_world
 # The 5th word is nproc; no information we can take from this
 N_PROC 		= $(word 6, $(DIRNAME_SPLIT2)) # 2
 
@@ -334,7 +334,7 @@ $(SRC_TFLITE_DOWNLOADS_DIR)/ruy
 # ----------------------------------- BUILD -----------------------------------
 # Recipes for all of the default common TFLite 
 include $(SRC_COMMON_DIR)/Makefile.inc
-include $(SRC_DIR)/examples/printf.inc
+include $(SRC_ML_DIR)/hello_world/Makefile.inc
 include $(SRC_ML_DIR)/person-detection/Makefile.inc
 
 .PHONY: build
