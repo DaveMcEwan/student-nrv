@@ -1,4 +1,6 @@
-#		----------------- PATTERN DETECTION TARGETS -----------------
+# Makefile variables and recipes for instruction sequence detection scripts
+
+#		----------------- VARIABLES -----------------
 # Directories
 INSN_SEQ_DIRS 			:= $(addsuffix insn_sequences/,${RESULT_DIRS})
 RAW_INSN_SEQ_DIRS 		:= $(addsuffix raw/,${INSN_SEQ_DIRS})
@@ -13,12 +15,11 @@ FILTERED_INSN_PATTERNS_COL := $(addsuffix patterns-column.pdf,${FILTERED_INSN_SE
 FILTERED_INSN_PAIRS		:= $(addsuffix pairs.txt,${FILTERED_INSN_SEQ_DIRS})
 FILTERED_INSN_PATTERNS	:= $(addsuffix patterns.txt,${FILTERED_INSN_SEQ_DIRS})
 
-# 			-------------- INSTRUCTION PATTERN DETECTION ---------------
-
+# 			-------------- RECIPES ---------------
+# Runs all scripts available
 .PHONY: display_instruction_sequences
 display_instruction_sequences : \
-instruction_pairs display_insn_pairs_heatmap display_insn_pairs_column \
-instruction_patterns display_insn_patterns_column
+display_insn_pairs_heatmap display_insn_pairs_column display_insn_patterns_column
 
 .PHONY: display_insn_pairs_heatmap display_insn_pairs_column display_insn_patterns_column
 # Display heatmap of instruction pairs and their associated counters
@@ -45,9 +46,11 @@ ${BUILD_DIR}/%/results/insn_sequences/filtered/patterns-column.pdf : \
 	python3 scripts/display/column.py \
 	-j=$< -p=insn_patterns -i=$@
 
+# Get the most frequent instruction pairs and patterns without displaying
 .PHONY: instruction_sequences
 instruction_sequences : instruction_pairs instruction_patterns
 
+# Get the most frequent instruction pairs
 .PHONY: instruction_pairs
 instruction_pairs : ${FILTERED_INSN_PAIRS}
 
@@ -62,6 +65,7 @@ ${BUILD_DIR}/%/results/insn_sequences/raw/pairs.JSON : \
 	-r=$(abspath $(addsuffix ../raw/pairs,$(dir $@))) \
 	< $< > $(subst .JSON,.txt,$@)
 
+# Get the most frequent instruction patterns
 .PHONY: instruction_patterns 
 instruction_patterns : ${FILTERED_INSN_PATTERNS}
 
