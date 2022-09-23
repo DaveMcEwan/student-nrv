@@ -16,6 +16,13 @@ FILTERED_INSN_PAIRS		:= $(addsuffix pairs.txt,${FILTERED_INSN_SEQ_DIRS})
 FILTERED_INSN_PATTERNS	:= $(addsuffix patterns.txt,${FILTERED_INSN_SEQ_DIRS})
 
 # 			-------------- RECIPES ---------------
+# Folders
+RAW_INSN_SEQ_DIRS:
+	mkdir -p ${RAW_INSN_SEQ_DIRS}
+
+FILTERED_INSN_SEQ_DIRS:
+	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
+
 # Runs all scripts available
 .PHONY: display_instruction_sequences
 display_instruction_sequences : \

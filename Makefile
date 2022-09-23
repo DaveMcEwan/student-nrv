@@ -281,18 +281,6 @@ COMMON_DIRS:
 RESULT_DIRS:
 	mkdir -p ${RESULT_DIRS}
 
-LOAD_BW_DIRS:
-	mkdir -p ${LOAD_BW_DIRS}
-
-STORE_BW_DIRS:
-	mkdir -p ${STORE_BW_DIRS}
-
-RAW_INSN_SEQ_DIRS:
-	mkdir -p ${RAW_INSN_SEQ_DIRS}
-
-FILTERED_INSN_SEQ_DIRS:
-	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
-
 LIB_DIRS:
 	mkdir -p ${LIB_DIRS}
 
@@ -418,6 +406,12 @@ include scripts/insn_patterns/Makefile.inc
 
 # 				  -------------- REGISTER ACCESSES ---------------
 include scripts/reg_accesses/Makefile.inc
+
+# 				  -------------- REGISTER SEQUENCES ---------------
+# TODO: Fix compatibility issues with the register sequence detection stuff
+#	with the display scripts. Being caused because the outputs of the scripts
+#	need to be split up before being passed into the display scripts.
+# include scripts/reg_sequences/Makefile.inc
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean

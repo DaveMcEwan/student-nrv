@@ -61,6 +61,14 @@ STORE_BW_128_TRC  := $(addsuffix store-bw-128.JSON,${STORE_BW_DIRS})
 # STORE_BW_32768	   := $(addsuffix store-bw-32768.pdf,${STORE_BW_DIRS})
 # STORE_BW_32768_TRC := $(addsuffix store-bw-32768.JSON,${STORE_BW_DIRS})
 
+# ---------------------------------  RECIPES ----------------------------------
+# Folders
+LOAD_BW_DIRS:
+	mkdir -p ${LOAD_BW_DIRS}
+
+STORE_BW_DIRS:
+	mkdir -p ${STORE_BW_DIRS}
+
 # ----------------------  FIGURES + MOVING AVERAGE OUTPUTS --------------------
 # Form all possible figures (Load and Store)
 .PHONY: display_bandwidth
