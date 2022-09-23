@@ -8,6 +8,8 @@ This repository looks to set up a workflow to compile Machine Learning programs 
 - A RISC-V compiler must be present to run the following repository. While developing this, the one used was the latest stable-release compiler from Embecosm for CentOS7 provided here : https://www.embecosm.com/resources/tool-chain-downloads/.
 
 - Spike is used to simulate the RISC-V programs which is provided under the Embecosm compilers.
+    - Note that this requires dtc (device-tree-compiler) to be installed
+    - Spike wasn't working on older versions of GCC; the version this repo was created on was 8.5.0
 
 ### Third party downloads
 TensorFlow Lite for Microcontrollers requires a set of third party downloads which can be downloaded by running:
