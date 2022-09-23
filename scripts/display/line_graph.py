@@ -18,6 +18,7 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 # Script arguments
 parser = argparse.ArgumentParser()
@@ -32,6 +33,10 @@ args = parser.parse_args()
 # Function to display the line graph
 def display_graph(avg_stream):
     plt.plot(avg_stream)
+    # TODO : Work on a way to have the Xticks be adjusted in size and quantity
+    #   with respect to the figure size/how big the data is
+    # plt.xticks(np.arange(0, avg_stream.size, \
+    #     (min(round((avg_stream.size/50)/100)*100, 1300))))
 
     # Determine axis names based on the input profile
     # Add future profiles here
@@ -44,7 +49,12 @@ def display_graph(avg_stream):
         plt.ylabel("Magnitude")
 
     plt.xlabel('Line Number')
-    plt.savefig(args.img)
+    
+    fig = plt.gcf()
+    # TODO : Work on setting up a figure size that adjusts well to the size
+    #   of the input data.
+    fig.set_size_inches(min(avg_stream.size/100, 620.35), 5)
+    fig.savefig(args.img)
 
 def main():
     line_count = 0
@@ -59,17 +69,24 @@ def main():
     values = np.empty([line_count])
     index = 0
 
-    value = sys.stdin.read(3)
-    # for num, line in enumerate(sys.stdin.read(3)):
-    while value:
-        values[index] = value
-        # Skip next value, allows us to sample without having to read all
-        #   of the data in in the first place.
-        sys.stdin.read(3)
-        value = sys.stdin.read(3)
+    # Read data into NumPy array first then slice accordingly
+    values[index] = sys.stdin.read(3)
+    while index < (line_count - 1):
         index += 1
+        values[index] = sys.stdin.read(3)
 
-    display_graph(values)
+    max_size = 5000000
+    if line_count > max_size: # Need to truncate and sample
+        print("Original line count : "+str(line_count))
+        slice_index = math.ceil(line_count / max_size)
+        print("Slice index = "+str(slice_index))
+        new_size = math.floor(line_count / slice_index) * slice_index
+        print("New size : "+str(new_size))
+        print(values[:new_size].size)
+        display_graph(np.mean(values[:new_size].reshape(new_size/slice_index,slice_index), axis=1))
+    else:
+        display_graph(values)
+    
 
 if __name__ == "__main__":
     main()

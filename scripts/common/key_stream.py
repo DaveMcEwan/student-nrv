@@ -36,8 +36,6 @@ args = parser.parse_args() # ISA argument stored in args.isa
 
 #   Iterate through the instruction stream and output the byte stream
 def print_key_stream(all_instrs):
-    # print("Stream of values associated with the key: "+args.key)
-
     if args.jsondump:
         with open(args.jsondump, 'w') as dump:
             for line in sys.stdin:
@@ -49,6 +47,10 @@ def print_key_stream(all_instrs):
                     dump.write("0") 
                     # TODO : Make sure this doesn't mess with other instruction traces
                     #    other than bandwidth stuff
+                    # This is currently broken since if an instruction has a 
+                    #   bandwidth taking up 2 digits, we wouldn't be able to
+                    #   distinguish it as a single number or two separate
+                    #   numbers.
 
 def main():
     print_key_stream(check_isa(args.isa, args.key))
