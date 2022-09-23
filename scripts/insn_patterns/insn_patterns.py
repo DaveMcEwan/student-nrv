@@ -32,6 +32,7 @@ from common.helper_functions import append_to_counter_dict
 
 # Input argument parsing
 parser = argparse.ArgumentParser()
+parser.add_argument("-n", "--seq_length", help="Length of ")
 parser.add_argument("-j", "--jsondump", help="Filepath/name for output JSON files")
 parser.add_argument("-r", "--rawdump", help="Filepath/name (without a file extension) \
     for the formatted unfiltered output patterns (prior to identifying the local \
@@ -40,15 +41,25 @@ args = parser.parse_args()
 
 #   Iterate through the instruction stream and calculate the most frequent
 #       instruction patterns of size n
-def track_patterns(instr_trace, n):
+def track_patterns():
     patterns_dict = {}
 
-    # Initialise window
-    window = [x.split()[4] for x in instr_trace[:n]]
-    patterns_dict[', '.join(window)] = 1
+    # Ideas: - Read in first 8 values by just using readline.
+    #   - Do windows up to the 8th value
+    #   - Once all windows are aligned on the 8th value, have a single for loop
+    #   for the rest of the input values which all windows are adjusted to
+
+    # Initialising the windows between sizes 3 to 8
+    window = []
+    for i in range(8):
+        window.append((sys.stdin.readline().split())[4])
+
+    for i in range(6,1,-1):
+        for j in range(i):
+            append_to_counter_dict(patterns_dict, ', '.join(window[j:j+(8-i)]))
 
     # Iterate through the rest of the instructions
-    for line in instr_trace[n:]:
+    for line in sys.stdin:
         insn_name = line.split()[4]
 
         # Push new instruction into the window and pop the element at the 0th index
@@ -59,7 +70,8 @@ def track_patterns(instr_trace, n):
         #   then acts as a key for the dictionary. Done so that the format matches
         #   that of the pair detection algorithm and because dictionaries can only
         #   take immutable types as keys
-        append_to_counter_dict(patterns_dict, ', '.join(window))
+        for i in range(6):
+            append_to_counter_dict(patterns_dict, ', '.join(window[i:]))
 
     # Returns a dictionary where each instruction pattern is associated with 
     #   their counter
@@ -68,12 +80,11 @@ def track_patterns(instr_trace, n):
 # Main function with timing in case I want to come back and optimise again
 def timed_main():    
     # Read in the stdin and store in the instr_trace variable
-    instr_trace = sys.stdin.readlines()
+    # instr_trace = sys.stdin.readlines()
     all_patterns_dict = {}
 
     start_time = time.time()
-    for i in range(3, 8):
-        all_patterns_dict.update(track_patterns(instr_trace, i))
+    all_patterns_dict.update(track_patterns())
     end_time = time.time()
     print("Time taken = "+str(end_time-start_time))
 
@@ -89,16 +100,12 @@ def timed_main():
 
 # Default main
 def main():
-    minimum_count = 0
+    minimum_count = 1
     diff_threshold = 5
-    # Read in the stdin and store in the instr_trace variable
-    instr_trace = sys.stdin.readlines()
     all_patterns_dict = {}
 
-    min_pattern_size = 3
-    max_pattern_size = 8
-    for i in range(min_pattern_size, max_pattern_size):
-        all_patterns_dict.update(track_patterns(instr_trace, i))
+    # for i in range(min_pattern_size, max_pattern_size):
+    all_patterns_dict.update(track_patterns())
 
     # Optional raw information prior to the local maxima calculations can
     #   be saved and stored in their own files
@@ -108,7 +115,7 @@ def main():
             dump.write(json.dumps(raw_result))
         with open(args.rawdump+".txt", 'w') as dump:
             dump.write("Raw most common instruction patterns for sizes \
-                between "+str(min_pattern_size)+" and "+str(max_pattern_size))
+                between 3 and 8")
             dump.write(json.dumps(print_pairs(raw_result, dump)))
 
     result = local_maxima(all_patterns_dict, minimum_count, diff_threshold, False)
@@ -121,7 +128,7 @@ def main():
 
     # Print the formatted version to stdout for user readability
     print("Filtered most common instruction patterns for sizes between \
-        "+str(min_pattern_size)+" and "+str(max_pattern_size))
+        3 and 8")
     print_pairs(result)
 
 if __name__ == "__main__":

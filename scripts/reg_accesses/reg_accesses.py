@@ -40,10 +40,10 @@ args = parser.parse_args() # ISA argument stored in args.isa
 
 # Iterate through the instruction trace and measure the frequency at which
 #   registers are accessed
-def track_regs(instr_trace, all_instrs, all_regs):
+def track_regs(all_instrs, all_regs):
     counter = 0
     # Parse lines on stdin
-    for line in instr_trace:
+    for line in sys.stdin:
         counter += 1
         line_list = line.split()
         insn_name = line_list[4]
@@ -57,6 +57,9 @@ def track_regs(instr_trace, all_instrs, all_regs):
             rs1, rs2, rd = parse_instruction(line_list[4:], all_instrs)
             if rs1:
                 logging.debug("rs1: "+str(rs1))
+                # if rs1 not in all_regs:
+                #     print(line)
+                #     print(line_list[4:])
                 all_regs[rs1]["rs"] += 1
             if rs2:
                 logging.debug("rs2: "+str(rs2))
@@ -69,13 +72,21 @@ def track_regs(instr_trace, all_instrs, all_regs):
         with open(args.jsondump, 'w') as dump:
             dump.write(json.dumps(all_regs))
     
+    return all_regs
+
+def print_regs(all_regs):
+    print(type(all_regs))
+    print(all_regs)
+    for key, value in all_regs.items():
+        print(key)
+        print("Frequency of times read from : "+str(value["rs"]))
+        print("Frequency of times written to : "+str(value["rd"]))
+
 def main():
-    # Read in the stdin and store in the instr_trace variable
-    instr_trace = sys.stdin.readlines()
     # Keys we want to access from the .isa files
     key_list = ["Type", "Format"]
     all_instrs, regs = check_isa(args.isa, key_list, reg=True)
-    track_regs(instr_trace, all_instrs, regs)
+    print_regs(track_regs(all_instrs, regs))
 
 if __name__ == "__main__":
     main()

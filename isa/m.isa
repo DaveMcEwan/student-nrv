@@ -1,18 +1,36 @@
 # All instructions belonging to the M extension for RISC-V (Multiplication and Division)
-Insn,       Type,   Ld, St
+Insn,       Type,   Format, Ld, St
 
-# 7.1 Multiplication Operations
-mul,        mult,   0,  0
-mulh,       mult,   0,  0
-mulhu,      mult,   0,  0
-mulhsu,     mult,   0,  0
+#   Multiplication Operations
+mul,        mult,   R,      0,  0
+mulh,       mult,   R,      0,  0
+mulhsu,     mult,   R,      0,  0
+mulhu,      mult,   R,      0,  0
 
-# 7.2 Division Operations
-div,        div,    0,  0
-divu,       div,    0,  0
-rem,        div,    0,  0
-remu,       div,    0,  0
-divw,       div,    0,  0
-divuw,      div,    0,  0
-remw,       div,    0,  0
-remuw,      div,    0,  0
+# 64 only
+mulw,       mult,   R,      0,  0
+# 128 only
+muld,       mult,   R,      0,  0
+
+#    Division Operations
+div,        div,    R,      0,  0
+divu,       div,    R,      0,  0
+
+# 64 only
+divw,       div,    R,      0,  0
+divuw,      div,    R,      0,  0
+# 128 only
+divd,       div,    R,      0,  0
+divud,      div,    R,      0,  0
+
+#    Remainder Operations
+rem,        div,    R,      0,  0
+remu,       div,    R,      0,  0
+
+# 64 only
+remw,       div,    R,      0,  0
+remuw,      div,    R,      0,  0
+
+# 128 only
+remd,       div,    R,      0,  0
+remud,      div,    R,      0,  0

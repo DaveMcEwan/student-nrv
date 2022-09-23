@@ -67,4 +67,5 @@ jobs:
           export PATH="$PWD/$RISCV_COMPILER/bin:$PATH"
           export RISCV="$PWD/$RISCV_COMPILER"
 
-          make
+          make third_party_downloads
+          make -j

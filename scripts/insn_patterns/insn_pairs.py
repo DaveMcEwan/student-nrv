@@ -24,6 +24,7 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 
 from common.pattern_detection import local_maxima, print_pairs
+from common.helper_functions import append_to_counter_dict
 
 # Input argument parsing
 parser = argparse.ArgumentParser()
@@ -34,32 +35,26 @@ parser.add_argument("-r", "--rawdump", help="Filepath/name (without a file exten
 args = parser.parse_args()
 
 #   Iterate through the instruction stream and calculate the most frequent instruction pairs
-def track_pairs(instr_trace):
+def track_pairs():
     pairs_dict = {}
-    previous_instr = instr_trace[0].split()[4] # Set the first instruction first 
+    previous_instr = sys.stdin.readline().split()[4]
 
-    for line in instr_trace[1:]:
+    for line in sys.stdin:
         insn_name = line.split()[4]
-
         key_string = f'{previous_instr}, {insn_name}'
-
-        if (key_string in pairs_dict):
-            pairs_dict[key_string] += 1
-        else:
-            pairs_dict[key_string] = 1
-        
+        append_to_counter_dict(pairs_dict, key_string)
         previous_instr = insn_name
     
     # Returns a list of tuples where each instruction is associated with their counter
     return pairs_dict
 
 def main():
-    minimum_count = 0
+    minimum_count = 1
     diff_threshold = 3
     # Read in the stdin and store in the instr_trace variable
-    instr_trace = sys.stdin.readlines()
+    # instr_trace = sys.stdin.readlines()
 
-    raw_result = track_pairs(instr_trace)
+    raw_result = track_pairs()
     # Optional raw information prior to the local maxima calculations can
     #   be saved and stored in their own files
     if args.rawdump:
@@ -78,7 +73,7 @@ def main():
         with open(args.jsondump, 'w') as dump:
             dump.write(json.dumps(result))
 
-    print("Filtered most common instruction pairs")
+    # print("Filtered most common instruction pairs")
     # Print the formatted version to stdout for user readability
     print_pairs(result)
 

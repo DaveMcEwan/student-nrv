@@ -50,13 +50,17 @@ def plot_bar(data_pairs):
         plt.xlabel("Independent Variable")
         plt.ylabel("Magnitude")
 
+    fig = plt.gcf()
+    fig.set_size_inches(20, 10)
+    plt.subplots_adjust(bottom=0.3)
+    plt.xticks(rotation = 45)
     plt.savefig(args.img)
 
 def main():
     with open(args.jsondump, 'r') as dump:
         data = json.load(dump)
 
-    plot_bar(data)
+    plot_bar(data[:32])
 
 if __name__ == "__main__":
     main()

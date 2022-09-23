@@ -5,13 +5,20 @@
 
 .SECONDARY: # Used to stop make from deleting intermediate files
 
+default: third_party_downloads
+# Default target purely for Github actions - used to verify if Spike simulation
+#	completes correctly without logging anything (which takes up hours and
+#	consumes a lot of space)
+# default: sim-test
+
 # Default targets are just the final ones (not including intermediate targets)
-default: assembly
+# default: assembly
 default: disassembly
-default: histogram
+# default: histogram
 default: extract_main
 default: display_bandwidth
 default: display_instruction_sequences
+default: display_reg_accesses
 
 # Checking if a RISCV compiler is present
 ifndef RISCV
@@ -22,23 +29,32 @@ endif
 
 # 	Macro definitions for directories to be used in the compile lines
 # /src - Contains input .c files
-SRC_DIR 		= ./src
+SRC_DIR 		= src
 # /src/common - Contains shared files between inputs e.g. syscalls.c
-SRC_COMMON_DIR  = ./src/common
+SRC_COMMON_DIR  = ${SRC_DIR}/common
+# /src/ml-inputs - Contains directories used for code to be compiled for each
+#	ML input
+SRC_ML_DIR		= ${SRC_DIR}/ml-inputs
+
+SRC_TFLITE_DIR	= ${SRC_DIR}/tensorflow/lite
+
+SRC_TFLITE_MICRO_DIR	= ${SRC_DIR}/tensorflow/lite/micro
+
+SRC_TFLITE_KERNELS_DIR	= ${SRC_TFLITE_MICRO_DIR}/kernels
+
+SRC_TFLITE_DOWNLOADS_DIR = ${SRC_TFLITE_MICRO_DIR}/downloads
 # /build - Constructed directory used to store outputs from recipes including
 #	executables, instruction traces, display pngs etc.
-BUILD_DIR 		= ./build
-
-# Include flag used in compile lines to include header files needed when
-#	compiling using the embecosm compilers
-INCLUDES 		= -I./include
+BUILD_DIR 		= build
+# /tools - Folder containing python scripts needed to make intermediate files
+TOOLS_DIR		= tools
 
 LINKER_SCRIPT 	= link.ld
 
 # Makefile functions and variables used to parse the input .csv file here
 MK_CSV 			:= ./csv/csv.mk
 # Input CSV file
-CSV 			?= ./csv/config5.csv
+CSV 			?= ./csv/inputs.csv
 
 $(shell echo CSV FNAME currently set to : ${CSV})
 
@@ -76,121 +92,63 @@ R_FNAME		= $(call CSV_COL,6,${row})
 
 # TRACES is a list holding all instruction trace target directory paths which 
 # 	will be used to form the other targets. Formed by looking at all rows of the CSV 
-# 	e.g. build/rv32gc-ilp32-gcc/cv_testcase/nproc-8/testcase.trc
-#		 build/$(isa)-$(abi)-$(compiler)/$(fname)/testcase.trc
+# 	e.g. build/rv32gc-ilp32-gcc/cv_testcase/nproc-8/whole.trc
+#		 build/$(isa)-$(abi)-$(compiler)/$(fname)/whole.trc
 TRACES := $(foreach row,${CSV_ROWS},$\
 	${BUILD_DIR}/$\
 	rv$(call R_XLEN)$(call R_ISA)-$(call R_ABI)-$(call R_COMPILER)/$\
-	$(call R_FNAME)/nproc-$(call R_NPROC)/testcase.trc)
+	$(call R_FNAME)/nproc-$(call R_NPROC)/whole.trc)
 
 # 	Form the other targets using string manipulation with the current target
+
 # main.trc - Section of instruction trace between where we enter and leave main
-MAIN_TRACES 	   := $(subst testcase,main,${TRACES})
+MAIN_TRACES    := $(subst whole,main,${TRACES})
+# test.txt - Stdout from purely simulating the input program without logging.
+#	Used just to check if executables simulate properly without waiting hours
+#	for the logging to complete.
+TEST_TRACES	   := $(subst whole.trc,test.txt,${TRACES})
 
 # 	Directory names - Formed by adjusting the TRACES list
 # nproc - subdirectories used to contain the files associated with
 #	simulating with a specific number of processors
+#	e.g. build/rv32gc-ilp32-gcc/person_detection/nproc-1/
 NPROC_DIRS 	:= $(dir ${TRACES})
+# results - subdirectories for any results/diagrams
+#	e.g. build/rv32gc-ilp32-gcc/person_detection/nproc-1/results
+RESULT_DIRS := $(addsuffix results/,${NPROC_DIRS})
 # fname - subdirectories holding all files related to a single input ML file
+#	e.g. build/rv32gc-ilp32-gcc/person_detection/
 FNAME_DIRS 	:= $(addsuffix ../,${NPROC_DIRS})
 # common - subdirectory used to store temporary files used by multiple test cases
-COMMON_DIRS := $(addsuffix ../common,${FNAME_DIRS})
-# figures - subdirectories for any figures
-RESULT_DIRS := $(addsuffix results/,${NPROC_DIRS})
+#	common to a single architecture configuration
+#	e.g. build/rv32gc-ilp32-gcc/common/
+COMMON_DIRS := $(addsuffix ../common/,${FNAME_DIRS})
 
 #	Target files
-OBJECTS 		   := $(addsuffix testcase.o,${FNAME_DIRS})
-# Histograms produced by Spike
-HISTOGRAMS 		   := $(subst .o,.hst,${OBJECTS})
-EXECUTABLES 	   := $(subst .o,.elf,${OBJECTS})
-ASSEMBLIES 	   	   := $(subst .o,.S,${OBJECTS})
-DISASSEMBLIES 	   := $(subst .o,.dasm,${OBJECTS})
+# Executable to be passed through Spike
+EXECUTABLES 	   := $(addsuffix executable.elf,${FNAME_DIRS})
+DISASSEMBLIES	   := $(addsuffix disassembly.dasm,${FNAME_DIRS})
 # (main) section of the disassembly
-MAIN_DISASSEMBLIES := $(subst testcase.dasm,main.dasm,${DISASSEMBLIES})
+MAIN_DISASSEMBLIES := $(subst disassembly,main,${DISASSEMBLIES})
 
-#		--------------------- BANDWIDTH TARGETS ---------------------
-# Directories
-BW_DIRS 	  := $(addsuffix bw/,${RESULT_DIRS})
-LOAD_BW_DIRS  := $(addsuffix load/,${BW_DIRS})
-STORE_BW_DIRS := $(addsuffix store/,${BW_DIRS})
-
-# Raw bandwidth streams
-LOAD_BYTE_STREAMS  := $(addsuffix load-byte-stream.trc,${LOAD_BW_DIRS})
-STORE_BYTE_STREAMS := $(addsuffix store-byte-stream.trc,${STORE_BW_DIRS})
-
-# Figures and corresponding average traces
-LOAD_BW_2		  := $(addsuffix load-bw-2.pdf,${LOAD_BW_DIRS})
-LOAD_BW_2_TRC	  := $(addsuffix load-bw-2.trc,${LOAD_BW_DIRS})
-
-LOAD_BW_4		  := $(addsuffix load-bw-4.pdf,${LOAD_BW_DIRS})
-LOAD_BW_4_TRC	  := $(addsuffix load-bw-4.trc,${LOAD_BW_DIRS})
-
-LOAD_BW_8		  := $(addsuffix load-bw-8.pdf,${LOAD_BW_DIRS})
-LOAD_BW_8_TRC	  := $(addsuffix load-bw-8.trc,${LOAD_BW_DIRS})
-
-LOAD_BW_16	  	  := $(addsuffix load-bw-16.pdf,${LOAD_BW_DIRS})
-LOAD_BW_16_TRC	  := $(addsuffix load-bw-16.trc,${LOAD_BW_DIRS})
-
-LOAD_BW_32	  	  := $(addsuffix load-bw-32.pdf,${LOAD_BW_DIRS})
-LOAD_BW_32_TRC	  := $(addsuffix load-bw-32.trc,${LOAD_BW_DIRS})
-
-LOAD_BW_64	  	  := $(addsuffix load-bw-64.pdf,${LOAD_BW_DIRS})
-LOAD_BW_64_TRC	  := $(addsuffix load-bw-64.trc,${LOAD_BW_DIRS})
-
-LOAD_BW_128	  	  := $(addsuffix load-bw-128.pdf,${LOAD_BW_DIRS})
-LOAD_BW_128_TRC	  := $(addsuffix load-bw-128.trc,${LOAD_BW_DIRS})
-
-STORE_BW_2		  := $(addsuffix store-bw-2.pdf,${STORE_BW_DIRS})
-STORE_BW_2_TRC	  := $(addsuffix store-bw-2.trc,${STORE_BW_DIRS})
-
-STORE_BW_4		  := $(addsuffix store-bw-4.pdf,${STORE_BW_DIRS})
-STORE_BW_4_TRC	  := $(addsuffix store-bw-4.trc,${STORE_BW_DIRS})
-
-STORE_BW_8		  := $(addsuffix store-bw-8.pdf,${STORE_BW_DIRS})
-STORE_BW_8_TRC	  := $(addsuffix store-bw-8.trc,${STORE_BW_DIRS})
-
-STORE_BW_16	  	  := $(addsuffix store-bw-16.pdf,${STORE_BW_DIRS})
-STORE_BW_16_TRC	  := $(addsuffix store-bw-16.trc,${STORE_BW_DIRS})
-
-STORE_BW_32	  	  := $(addsuffix store-bw-32.pdf,${STORE_BW_DIRS})
-STORE_BW_32_TRC	  := $(addsuffix store-bw-32.trc,${STORE_BW_DIRS})
-
-STORE_BW_64	  	  := $(addsuffix store-bw-64.pdf,${STORE_BW_DIRS})
-STORE_BW_64_TRC	  := $(addsuffix store-bw-64.trc,${STORE_BW_DIRS})
-
-STORE_BW_128	  := $(addsuffix store-bw-128.pdf,${STORE_BW_DIRS})
-STORE_BW_128_TRC  := $(addsuffix store-bw-128.trc,${STORE_BW_DIRS})
-
-#		----------------- PATTERN DETECTION TARGETS -----------------
-# Directories
-INSN_SEQ_DIRS 			:= $(addsuffix insn_sequences/,${RESULT_DIRS})
-RAW_INSN_SEQ_DIRS 		:= $(addsuffix raw/,${INSN_SEQ_DIRS})
-FILTERED_INSN_SEQ_DIRS 	:= $(addsuffix filtered/,${INSN_SEQ_DIRS})
-
-# Target display files
-FILTERED_INSN_PAIRS_HEATMAPS := $(addsuffix pairs-heatmap.pdf,${FILTERED_INSN_SEQ_DIRS})
-FILTERED_INSN_PAIRS_COL := $(addsuffix pairs-column.pdf,${FILTERED_INSN_SEQ_DIRS})
-FILTERED_INSN_PATTERNS_COL := $(addsuffix patterns-column.pdf,${FILTERED_INSN_SEQ_DIRS})
-
-# Target files
-FILTERED_INSN_PAIRS		:= $(addsuffix pairs.txt,${FILTERED_INSN_SEQ_DIRS})
-FILTERED_INSN_PATTERNS	:= $(addsuffix patterns.txt,${FILTERED_INSN_SEQ_DIRS})
+#			--------------------- ML TARGETS ---------------------
+GEN_ML_DIR		:=	${BUILD_DIR}/ml-gen
 
 # --------------- Variable definitions based on the pattern rule ---------------
 # Second set of variable names/definitions. This one is formed based on the
 #	pattern rule where the information is taken from the file path of the target.
 
-# Example file path : rv32gc-ilp32-gcc/printf/nproc-2/
+# Example file path : rv32gc-ilp32-gcc/hello_world/nproc-2/
 
 # Splitting up the file path into individual components
 # $* - Pattern rule from which the file path will be determined from
 DIRNAME_SPLIT1 = $(subst -,${space},$*)
 DIRNAME_SPLIT2 = $(subst /,${space}, $(DIRNAME_SPLIT1))
-# The example at this point would then be : rv32gc ilp32 gcc printf nproc 2
+# The example at this point would then be : rv32gc ilp32 gcc hello_world nproc 2
 ISA 		= $(word 1, $(DIRNAME_SPLIT2)) # rv32gc
 ABI			= $(word 2, $(DIRNAME_SPLIT2)) # ilp32
 COMPILER 	= $(word 3, $(DIRNAME_SPLIT2)) # gcc
-FNAME 		= $(word 4, $(DIRNAME_SPLIT2)) # printf
+FNAME 		= $(word 4, $(DIRNAME_SPLIT2)) # hello_world
 # The 5th word is nproc; no information we can take from this
 N_PROC 		= $(word 6, $(DIRNAME_SPLIT2)) # 2
 
@@ -201,9 +159,10 @@ XLEN 	 	?= $(findstring 64, $(ISA))
 
 #	Commands used within recipes that require these variables taken from the
 #		file path using the pattern rule
-CC = riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
+CC 		= riscv$(XLEN)-unknown-elf-$(COMPILER)	# Compilation command
 OBJDUMP = ${RISCV}/bin/riscv$(XLEN)-unknown-elf-objdump
-SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size 
+SIZE 	= ${RISCV}/bin/riscv$(XLEN)-unknown-elf-size
+AR		= riscv$(XLEN)-unknown-elf-ar
 
 # SPIKE 	= ${RISCV}/bin/spike
 SPIKE	= spike
@@ -222,18 +181,18 @@ WINDOW_SIZE = $(word 3, $(subst -, ,$(basename $(notdir $@))))
 #		when simulating,
 #		- Script analysis - Determines what instructions and registers to look
 #		at when parsing.
-CFLAGS = -march=$(ISA)
+CCFLAGS = -march=${ISA}
 
 # ABI - Application Binary Interface
 #	- Specifies the integer and floating-point calling convention
 #	- Determines the bit sizes of the types
-CFLAGS += -mabi=${ABI}
+CCFLAGS += -mabi=${ABI}
 
 # mcmodel -  Code model
 #	- Determines the code model (medlow/medium-low or medany/medium-any)
 #	- Used to determine conditions for the address range where the program
 #	and it's statically defifned symbols can be placed
-CFLAGS += -mcmodel=medany
+CCFLAGS += -mcmodel=medany
 
 # freestanding program
 #	- Tells the compiler that the standard library may not exist and so
@@ -242,409 +201,226 @@ CFLAGS += -mcmodel=medany
 #	- Needed so that we can use functions provided by syscalls.c that use
 #	the HTIF (Host/Target Interface) which the Spike simulator will be
 #	able to simulate
-CFLAGS += -ffreestanding
+CCFLAGS += -ffreestanding
 
 # Static libraries
 #	- Forces program to use static libraries
 #	- Needed to allow us to specifically state what libraries we want present in
 #	the program
-CFLAGS += -static
-CFLAGS += -lgcc
+CCFLAGS += -static
+CCFLAGS += -lgcc
 
 # No standard libraries
 #	- Tells the program to not use the standard system startup files or libraries 
 #	when linking
 #	- Allows us to use our own linker scripts
-CFLAGS += -nostdlib
+CCFLAGS += -nostdlib
 
 # No standard startup files
 #	- Tells the compiler to not use the standard system startup files when linking
 #	- Allows us to use our own startup files which work unlike the standard ones
 #	in setting up the system so that it can be simulated in Spike properly.
-CFLAGS += -nostartfiles
+CCFLAGS += -nostartfiles
 
-LDFLAGS = -T${LINKER_SCRIPT}
+CCFLAGS += \
+	-std=c++11 \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-threadsafe-statics \
+	-fno-unwind-tables \
+	-ffunction-sections \
+	-fdata-sections \
+	-fmessage-length=0 \
+	-DTF_LITE_STATIC_MEMORY \
+	-DTF_LITE_DISABLE_X86_NEON \
+	-Wsign-compare \
+	-Wshadow \
+	-Wswitch \
+	-Wvla \
+	-Wextra \
+	-Wmissing-field-initializers \
+	-Wstrict-aliasing \
+	-mexplicit-relocs \
+	-fno-builtin-printf \
+	-DTF_LITE_MCU_DEBUG_LOG \
+	-DTF_LITE_USE_GLOBAL_CMATH_FUNCTIONS \
+	-funsigned-char -fno-delete-null-pointer-checks \
+	-fomit-frame-pointer \
+	-fpermissive \
+	-fno-use-cxa-atexit \
+	-DTF_LITE_USE_GLOBAL_MIN \
+	-DTF_LITE_USE_GLOBAL_MAX
 
-#	Testing
-print_all: TRACES
-	@echo TRACES
-	@echo ${TRACES}
-	@echo
-	@echo MAIN_TRACES
-	@echo ${MAIN_TRACES}
-	@echo
-	@echo NPROC_DIRS
-	@echo ${NPROC_DIRS}
-	@echo
-	@echo FNAME_DIRS
-	@echo ${FNAME_DIRS}
-	@echo
-	@echo HISTOGRAMS
-	@echo ${HISTOGRAMS}
-	@echo
-	@echo OBJECTS
-	@echo ${OBJECTS}
-	@echo
-	@echo EXECUTABLES
-	@echo ${EXECUTABLES}
-	@echo
-	@echo DISASSEMBLIES
-	@echo ${DISASSEMBLIES}
-	@echo
-	@echo MAIN_DISASSEMBLIES
-	@echo ${MAIN_DISASSEMBLIES}
+CC_INCLUDES = -I. \
+	-I${SRC_TFLITE_DOWNLOADS_DIR}/gemmlowp \
+	-I${SRC_TFLITE_DOWNLOADS_DIR}/flatbuffers/include \
+	-I${SRC_TFLITE_DOWNLOADS_DIR}/ruy \
+	-I./include \
+	-I${SRC_DIR} \
+	-I${GEN_ML_DIR}
 
-TRACES:
-	mkdir -p ${FNAME_DIRS}
-
-# Details of all recipes can be found in /doc/dependencies.md
+CORE_OPTIMIZATION_LEVEL = -Os
+KERNEL_OPTIMIZATION_LEVEL = -O2
 
 #	------------------------------ DIRECTORIES --------------------------------
 # Targets to form all needed directories in one to avoid having multiple separate 
 #	mkdir commands that flood the command line.
 
-# .PHONY: NPROC_DIRS
-NPROC_DIRS:
-	@echo Making all NPROC_DIRS
-	mkdir -p ${NPROC_DIRS}
-
-# .PHONY: FNAME_DIRS
-FNAME_DIRS:
-	@echo Making all FNAME_DIRS
+TRACES:
 	mkdir -p ${FNAME_DIRS}
 
-# .PHONY: COMMON_DIRS
+NPROC_DIRS:
+	mkdir -p ${NPROC_DIRS}
+
+FNAME_DIRS:
+	mkdir -p ${FNAME_DIRS}
+
 COMMON_DIRS:
-	@echo Making all COMMON_DIRS
 	mkdir -p ${COMMON_DIRS}
 
-# .PHONY: RESULT_DIRS
 RESULT_DIRS:
-	@echo Making all RESULT_DIRS
 	mkdir -p ${RESULT_DIRS}
 
-LOAD_BW_DIRS:
-	@echo Making all LOAD_BW_DIRS
-	mkdir -p ${LOAD_BW_DIRS}
+LIB_DIRS:
+	mkdir -p ${LIB_DIRS}
 
-STORE_BW_DIRS:
-	@echo Making all STORE_BW_DIRS
-	mkdir -p ${STORE_BW_DIRS}
+SRC_TFLITE_DOWNLOADS_DIR:
+	mkdir -p ${SRC_TFLITE_DOWNLOADS_DIR}
 
-RAW_INSN_SEQ_DIRS:
-	@echo Making all RAW_INSN_SEQ_DIRS
-	mkdir -p ${RAW_INSN_SEQ_DIRS}
+# --------------------------- THIRD PARTY DOWNLOADS  --------------------------
+${SRC_TFLITE_DOWNLOADS_DIR}/flatbuffers: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/flatbuffers_download.sh ${SRC_TFLITE_DOWNLOADS_DIR}
 
-FILTERED_INSN_SEQ_DIRS:
-	@echo Making all FILTERED_INSN_SEQ_DIRS
-	mkdir -p ${FILTERED_INSN_SEQ_DIRS}
+${SRC_TFLITE_DOWNLOADS_DIR}/kissfft: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/kissfft_download.sh ${SRC_TFLITE_DOWNLOADS_DIR}
 
+${SRC_TFLITE_DOWNLOADS_DIR}/pigweed: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/pigweed_download.sh ${SRC_TFLITE_DOWNLOADS_DIR}
+
+GEMMLOWP_URL = "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
+GEMMLOWP_MD5 = "7e8191b24853d75de2af87622ad293ba"
+
+${SRC_TFLITE_DOWNLOADS_DIR}/gemmlowp: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/download_and_extract.sh $(GEMMLOWP_URL) $(GEMMLOWP_MD5) $@
+
+RUY_URL = "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
+RUY_MD5 = "abf7a91eb90d195f016ebe0be885bb6e"
+
+${SRC_TFLITE_DOWNLOADS_DIR}/ruy: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/download_and_extract.sh $(RUY_URL) $(RUY_MD5) $@
+
+.PHONY: third_party_downloads
+third_party_downloads : ${SRC_TFLITE_DOWNLOADS_DIR}/flatbuffers \
+${SRC_TFLITE_DOWNLOADS_DIR}/kissfft \
+${SRC_TFLITE_DOWNLOADS_DIR}/pigweed \
+${SRC_TFLITE_DOWNLOADS_DIR}/gemmlowp \
+${SRC_TFLITE_DOWNLOADS_DIR}/ruy
+
+# -------------------------------- GENERAL DEPENDENCIES --------------------------------
+# Details of all recipes can be found in /doc/dependencies.md
 # ----------------------------------- BUILD -----------------------------------
-# Compilation targets (executables and object files)
+# Recipes for all of the default common TFLite 
+include ${SRC_DIR}/tensorflow/Makefile.inc
+include ${SRC_ML_DIR}/hello_world/Makefile.inc
+include ${SRC_ML_DIR}/person-detection/Makefile.inc
+
 .PHONY: build
 build: ${EXECUTABLES}
-
-# Executable
-# example $* = % = rv32gc-ilp32-gcc/simple_add/nproc-1/..
-${BUILD_DIR}/%/testcase.elf: \
-	${BUILD_DIR}/%/testcase.o \
-	${BUILD_DIR}/%/../common/syscalls.o \
-	${SRC_COMMON_DIR}/entry.S \
-	| FNAME_DIRS
-
-	${CC} $^ $(CFLAGS) ${INCLUDES} ${LDFLAGS} -o $@
 
 # First dependency of this recipe is dependent on information in the file path of the
 #	recipe which must be expanded into $*. Secondary expansion is used to then access
 #	the file path through the pattern rule which after parsing a bit and adding the 
 #	necessary prefixes and suffixes, forms the file path for the input test case (whose
 #	name is present in the file path)
-# Input program object file
 .SECONDEXPANSION:
-${BUILD_DIR}/%/testcase.o: \
-	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
-	| FNAME_DIRS
-
-	echo "Forming object file"
-	echo $@
-
-	${CC} $(CFLAGS) ${INCLUDES} -c $^ -o $@
+${BUILD_DIR}/%/executable.elf: \
+	${BUILD_DIR}/%/../common/syscalls.o \
+	${BUILD_DIR}/$$*/$$(word 2, $$(subst /, ,$$*)).a \
+	$(TFLITE_OBJS) $(TFLITE_MICRO_OBJS) $(TFLITE_MICRO_KERNEL_OBJS) \
+	${SRC_COMMON_DIR}/entry.S
+	
+	mkdir -p $(dir $@)
+	$(CC) -march=$(ISA) -mabi=$(ABI) -Wl,--fatal-warnings -Wl,--gc-sections \
+	-nostartfiles -lm -lgcc \
+	${CC_INCLUDES} -T${LINKER_SCRIPT} \
+	-o $@ $^
 
 # syscalls object file
-${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c | COMMON_DIRS
-	${CC} $(CFLAGS) ${INCLUDES} -w -c $< -o $@
+${BUILD_DIR}/%/../common/syscalls.o: ${SRC_COMMON_DIR}/syscalls.c
+	mkdir -p $(dir $@)
+	${CC} -march=${ISA} \
+	-mabi=${ABI} \
+	-mcmodel=medany \
+	-ffreestanding \
+	-static \
+	-lgcc \
+	-nostdlib \
+	-nostartfiles \
+	 -I./include -w -c $< -o $@
 
-# --------------------------------- ASSEMBLY ----------------------------------
-# Assembly file produced using the '-S' flag with the compilation line; currently
-#	not being used for any analysis
+# --------------- INSTRUCTION TRACE and DISASSEMBLY ---------------
 
-.PHONY: assembly
-assembly: ${ASSEMBLIES}
+# Debugging recipe - Verify if simulation completes without logging
+#	the instruction trace
+.PHONY: sim-test
+sim-test: ${TEST_TRACES}
 
-# Secondary expansion use explained in the testcase.o recipe
-.SECONDEXPANSION:
-${BUILD_DIR}/%/testcase.S: \
-	$$(addsuffix .c,$$(addprefix ${SRC_DIR}/,$$(word 2, $$(subst /, ,$$*)))) \
-	| FNAME_DIRS
-
-	${CC} $(CFLAGS) ${INCLUDES} -S $^ -o $@
-
-# --------------- INSTRUCTION TRACE, DISASSEMBLY and HISTOGRAM ---------------
+${BUILD_DIR}/%/test.txt: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
+	${SPIKE} -p${N_PROC} --isa=$(ISA) $< > $@
 
 # Instruction trace
 .PHONY: sim
 sim: ${TRACES}
 
-${BUILD_DIR}/%/testcase.trc: ${BUILD_DIR}/%/../testcase.elf | NPROC_DIRS
+${BUILD_DIR}/%/whole.trc: ${BUILD_DIR}/%/../executable.elf | NPROC_DIRS
 	${SPIKE} -p${N_PROC} -l --isa=$(ISA) $< 2> $@
 
 # Disassembly
 .PHONY: disassembly
 disassembly: ${DISASSEMBLIES}
 
-${BUILD_DIR}/%/testcase.dasm: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
+${BUILD_DIR}/%/disassembly.dasm: ${BUILD_DIR}/%/executable.elf | FNAME_DIRS
 	${OBJDUMP} -S -D $< > $@
-
-# Histogram produced using the '-g' flag
-.PHONY: histogram
-histogram: ${HISTOGRAMS}
-
-${BUILD_DIR}/%/testcase.hst: ${BUILD_DIR}/%/testcase.elf | FNAME_DIRS
-	${SPIKE} -g --isa=$(ISA) $< 2> $@
 
 # Reduced instruction trace that only covers the region where we
 #	enter and leave main
 .PHONY: extract_main
 extract_main: ${MAIN_TRACES}
 
-${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/testcase.trc | NPROC_DIRS
+${BUILD_DIR}/%/main.trc: ${BUILD_DIR}/%/../main.dasm ${BUILD_DIR}/%/whole.trc | NPROC_DIRS
 	$(eval START_ADDRESS = $(shell cat $< | head -n1 | awk '{print $$1;}'))
 	$(eval END_ADDRESS = $(shell cat $< | tail -n1 | awk '{print $$1;}' | tr -d ':'))
-	sed -n '/${START_ADDRESS}/,/${END_ADDRESS}/p' ${BUILD_DIR}/$*/testcase.trc > $@
+	sed -n '/${START_ADDRESS}/,/${END_ADDRESS}/p' ${BUILD_DIR}/$*/whole.trc > $@
 
 # Reduced disassembly - only covering the main function to then parse the start and end
 #	address from
-${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../testcase.dasm | NPROC_DIRS
+${BUILD_DIR}/%/../main.dasm: ${BUILD_DIR}/%/../disassembly.dasm | NPROC_DIRS
 	sed -n '/<main>:/,/ret/p' $< > $@
 
 # ------------------------ INSTRUCTION TRACE ANALYSIS -------------------------
 # 			------------------------ BANDWIDTH -------------------------
-# make bandwidth - forms all possible figures
-.PHONY: display_bandwidth
-display_bandwidth: avg_load_bw_all avg_store_bw_all \
-display_load_bw_all display_store_bw_all
-
-# 			   ----------------------- LOAD ------------------------
-# Display all
-.PHONY: display_load_bw_all
-display_load_bw_all	: $(LOAD_BW_2) $(LOAD_BW_4) $(LOAD_BW_8) \
-${LOAD_BW_16} ${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128}
-
-# Individual load targets for displaying
-.PHONY: display_load_bw_2 display_load_bw_4 display_load_bw_8
-.PHONY: display_load_bw_16 display_load_bw_32 display_load_bw_64
-.PHONY: display_load_bw_128
-display_load_bw_2 	: ${LOAD_BW_2}
-display_load_bw_4 	: ${LOAD_BW_4}
-display_load_bw_8 	: ${LOAD_BW_8}
-display_load_bw_16 	: ${LOAD_BW_16}
-display_load_bw_32 	: ${LOAD_BW_32}
-display_load_bw_64 	: ${LOAD_BW_64}
-display_load_bw_128 : ${LOAD_BW_128}
-
-# Grouped load targets
-.PHONY: display_load_bw_small display_load_bw_medium display_load_bw_load
-display_load_bw_small  : ${LOAD_BW_2} ${LOAD_BW_4}
-display_load_bw_medium : ${LOAD_BW_8} ${LOAD_BW_16} ${LOAD_BW_32}
-display_load_bw_large  : ${LOAD_BW_64} ${LOAD_BW_128}
-
-# Target 	 :	bw/load/load-bw-n.pdf = LOAD_BW_N
-# Dependency :  bw/load/load-bw-n.trc = LOAD_BW_N_TRC
-.SECONDEXPANSION:
-${LOAD_BW_2} ${LOAD_BW_4} ${LOAD_BW_8} ${LOAD_BW_16} \
-${LOAD_BW_32} ${LOAD_BW_64} ${LOAD_BW_128} \
-	: $$(subst .pdf,.trc,$$@) | LOAD_BW_DIRS
-
-	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
-	-n=$(WINDOW_SIZE) --img=$@ < $<
-
-.PHONY: avg_load_bw_all
-avg_load_bw_all : ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} \
-${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
-
-# Individual load targets for average trace calculations
-.PHONY: avg_load_bw_2 avg_load_bw_4 avg_load_bw_8
-.PHONY: avg_load_bw_16 avg_load_bw_32 avg_load_bw_64
-.PHONY: avg_load_bw_128
-avg_load_bw_2 	: ${LOAD_BW_2_TRC}
-avg_load_bw_4 	: ${LOAD_BW_4_TRC}
-avg_load_bw_8 	: ${LOAD_BW_8_TRC}
-avg_load_bw_16 	: ${LOAD_BW_16_TRC}
-avg_load_bw_32 	: ${LOAD_BW_32_TRC}
-avg_load_bw_64 	: ${LOAD_BW_64_TRC}
-avg_load_bw_128 : ${LOAD_BW_128_TRC}
-
-# Grouped load targets
-.PHONY: avg_load_bw_small avg_load_bw_medium avg_load_bw_load
-avg_load_bw_small  : ${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC}
-avg_load_bw_medium : ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} ${LOAD_BW_32_TRC}
-avg_load_bw_large  : ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC}
-
-# Target 	 :	bw/load/load-bw-n.trc = LOAD_BW_N_TRC
-# Dependency :  bw/load/load-byte-stream.trc = LOAD_BYTE_STREAMS
-.SECONDEXPANSION:
-${LOAD_BW_2_TRC} ${LOAD_BW_4_TRC} ${LOAD_BW_8_TRC} ${LOAD_BW_16_TRC} \
-${LOAD_BW_32_TRC} ${LOAD_BW_64_TRC} ${LOAD_BW_128_TRC} \
-	: $$(addsuffix load-byte-stream.trc, $$(dir $$@)) | LOAD_BW_DIRS
-	
-	python3 scripts/common/moving_average.py -f=True -n=$(WINDOW_SIZE) \
-	< $< > $@
-
-# 			  ------------------------ STORE ------------------------
-# Display all
-.PHONY: display_store_bw_all
-display_store_bw_all	: $(STORE_BW_2) $(STORE_BW_4) $(STORE_BW_8) \
-${STORE_BW_16} ${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128}
-
-# Individual store targets for displaying
-.PHONY: display_store_bw_2 display_store_bw_4 display_store_bw_8
-.PHONY: display_store_bw_16 display_store_bw_32 display_store_bw_64
-.PHONY: display_store_bw_128
-display_store_bw_2 	 : ${STORE_BW_2}
-display_store_bw_4 	 : ${STORE_BW_4}
-display_store_bw_8 	 : ${STORE_BW_8}
-display_store_bw_16  : ${STORE_BW_16}
-display_store_bw_32  : ${STORE_BW_32}
-display_store_bw_64  : ${STORE_BW_64}
-display_store_bw_128 : ${STORE_BW_128}
-
-# Grouped store targets
-.PHONY: display_store_bw_small display_store_bw_medium display_store_bw_store
-display_store_bw_small  : ${STORE_BW_2} ${STORE_BW_4}
-display_store_bw_medium : ${STORE_BW_8} ${STORE_BW_16} ${STORE_BW_32}
-display_store_bw_large  : ${STORE_BW_64} ${STORE_BW_128}
-
-.SECONDEXPANSION:
-${STORE_BW_2} ${STORE_BW_4} ${STORE_BW_8} ${STORE_BW_16} \
-${STORE_BW_32} ${STORE_BW_64} ${STORE_BW_128} \
-	: $$(addsuffix .trc, $$(basename $$@)) | STORE_BW_DIRS
-
-	python3 scripts/display/line_graph.py -p=mov_avg -f=True \
-	-n=$(WINDOW_SIZE) --img=$@ < $<
-
-.PHONY: avg_store_bw_all
-avg_store_bw_all : ${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} \
-${STORE_BW_16_TRC} ${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
-
-# Individual store targets for average trace calculations
-.PHONY: avg_store_bw_2 avg_store_bw_4 avg_store_bw_8
-.PHONY: avg_store_bw_16 avg_store_bw_32 avg_store_bw_64
-.PHONY: avg_store_bw_128
-avg_store_bw_2 	 : ${STORE_BW_2_TRC}
-avg_store_bw_4 	 : ${STORE_BW_4_TRC}
-avg_store_bw_8 	 : ${STORE_BW_8_TRC}
-avg_store_bw_16  : ${STORE_BW_16_TRC}
-avg_store_bw_32  : ${STORE_BW_32_TRC}
-avg_store_bw_64  : ${STORE_BW_64_TRC}
-avg_store_bw_128 : ${STORE_BW_128_TRC}
-
-# Grouped store targets
-.PHONY: avg_store_bw_small avg_store_bw_medium avg_store_bw_store
-avg_store_bw_small  : ${STORE_BW_2_TRC} ${STORE_BW_4_TRC}
-avg_store_bw_medium : ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} ${STORE_BW_32_TRC}
-avg_store_bw_large  : ${STORE_BW_64_TRC} ${STORE_BW_128_TRC}
-
-.SECONDEXPANSION:
-${STORE_BW_2_TRC} ${STORE_BW_4_TRC} ${STORE_BW_8_TRC} ${STORE_BW_16_TRC} \
-${STORE_BW_32_TRC} ${STORE_BW_64_TRC} ${STORE_BW_128_TRC} \
-	: $$(addsuffix store-byte-stream.trc, $$(dir $$@)) | STORE_BW_DIRS
-	
-	python3 scripts/common/moving_average.py -f=True -n=$(WINDOW_SIZE) \
-	< $< > $@
-
-# 	Recipes for solely producing the bandwidth streams
-# make bandwidth_streams - forms all possible bandwidth stream traces
-.PHONY: bandwidth_streams
-bandwidth_streams: load_bw_streams store_bw_streams
-
-.PHONY: load_bw_streams
-load_bw_streams: ${LOAD_BYTE_STREAMS}
-${BUILD_DIR}/%/results/bw/load/load-byte-stream.trc: ${BUILD_DIR}/%/main.trc | LOAD_BW_DIRS
-	echo "Load BW streams"
-	python3 scripts/common/key_stream.py -k=Ld --isa=$(ISA) < $< > $@
-
-.PHONY: store_bw_streams
-store_bw_streams: ${STORE_BYTE_STREAMS}
-${BUILD_DIR}/%/results/bw/store/store-byte-stream.trc: ${BUILD_DIR}/%/main.trc | STORE_BW_DIRS
-	python3 scripts/common/key_stream.py -k=St --isa=$(ISA) < $< > $@
+include scripts/bandwidth/Makefile.inc
 
 # 			-------------- INSTRUCTION PATTERN DETECTION ---------------
+include scripts/insn_patterns/Makefile.inc
 
-.PHONY: display_instruction_sequences
-display_instruction_sequences : \
-instruction_pairs display_insn_pairs_heatmap display_insn_pairs_column \
-instruction_patterns display_insn_patterns_column
+# 				  -------------- REGISTER ACCESSES ---------------
+include scripts/reg_accesses/Makefile.inc
 
-.PHONY: display_insn_pairs_heatmap display_insn_pairs_column display_insn_patterns_column
-# Display heatmap of instruction pairs and their associated counters
-display_insn_pairs_heatmap 	 : ${FILTERED_INSN_PAIRS_HEATMAPS}
-${BUILD_DIR}/%/results/insn_sequences/filtered/pairs-heatmap.pdf : \
-	${BUILD_DIR}/%/results/insn_sequences/filtered/pairs.JSON | FILTERED_INSN_SEQ_DIRS
-
-	python3 scripts/display/heatmap.py \
-	-j=$< -p=insn_pairs -i=$@
-
-# Display a column graph of the most frequent instruction pairs
-display_insn_pairs_column 	 : ${FILTERED_INSN_PAIRS_COL}
-${BUILD_DIR}/%/results/insn_sequences/filtered/pairs-column.pdf : \
-	${BUILD_DIR}/%/results/insn_sequences/filtered/pairs.JSON | FILTERED_INSN_SEQ_DIRS
-
-	python3 scripts/display/column.py \
-	-j=$< -p=insn_pairs -i=$@
-
-# Display a column graph of the most frequen instruction patterns
-display_insn_patterns_column : ${FILTERED_INSN_PATTERNS_COL}
-${BUILD_DIR}/%/results/insn_sequences/filtered/patterns-column.pdf : \
-	${BUILD_DIR}/%/results/insn_sequences/filtered/patterns.JSON | FILTERED_INSN_SEQ_DIRS
-
-	python3 scripts/display/column.py \
-	-j=$< -p=insn_patterns -i=$@
-
-.PHONY: instruction_sequences
-instruction_sequences : instruction_pairs instruction_patterns
-
-.PHONY: instruction_pairs
-instruction_pairs : ${FILTERED_INSN_PAIRS}
-
-${BUILD_DIR}/%/results/insn_sequences/filtered/pairs.JSON \
-${BUILD_DIR}/%/results/insn_sequences/filtered/pairs.txt \
-${BUILD_DIR}/%/results/insn_sequences/raw/pairs.txt \
-${BUILD_DIR}/%/results/insn_sequences/raw/pairs.JSON : \
-	${BUILD_DIR}/%/main.trc | FILTERED_INSN_SEQ_DIRS RAW_INSN_SEQ_DIRS
-
-	python3 scripts/insn_patterns/insn_pairs.py \
-	-j=$(subst .txt,.JSON,$@) \
-	-r=$(abspath $(addsuffix ../raw/pairs,$(dir $@))) \
-	< $< > $(subst .JSON,.txt,$@)
-
-.PHONY: instruction_patterns 
-instruction_patterns : ${FILTERED_INSN_PATTERNS}
-
-${BUILD_DIR}/%/results/insn_sequences/filtered/patterns.JSON \
-${BUILD_DIR}/%/results/insn_sequences/filtered/patterns.txt \
-${BUILD_DIR}/%/results/insn_sequences/raw/patterns.txt \
-${BUILD_DIR}/%/results/insn_sequences/raw/patterns.JSON : \
-	${BUILD_DIR}/%/main.trc | FILTERED_INSN_SEQ_DIRS RAW_INSN_SEQ_DIRS
-
-	python3 scripts/insn_patterns/insn_patterns.py \
-	-j=$(subst .txt,.JSON,$@) \
-	-r=$(abspath $(addsuffix ../raw/patterns,$(dir $@))) \
-	< $< > $(subst .JSON,.txt,$@)
+# 				  -------------- REGISTER SEQUENCES ---------------
+# TODO: Fix compatibility issues with the register sequence detection stuff
+#	with the display scripts. Being caused because the outputs of the scripts
+#	need to be split up before being passed into the display scripts.
+# include scripts/reg_sequences/Makefile.inc
 
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
 clean:
 	rm -r ${BUILD_DIR}
+
+.PHONY: clean_downloads
+clean_downloads:
+	rm -rf ${SRC_TFLITE_DOWNLOADS_DIR}
 
 ###################################################################################
 # # Spike with GDB

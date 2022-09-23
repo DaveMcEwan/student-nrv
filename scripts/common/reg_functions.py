@@ -44,7 +44,7 @@ def parse_instruction(instruction_line, all_instrs):
             # rs/d, rs
             if(insn_name=="c.jr" or insn_name=="c.jalr"):
                 # rs
-                rs1 = instruction_line[1][:-1]
+                rs1 = instruction_line[1]
             else:
                 first_reg = instruction_line[1][:-1]
                 rd = first_reg

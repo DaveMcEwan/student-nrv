@@ -1,0 +1,41 @@
+# All instructions belonging to the A extension for RISC-V (Atomic instructions)
+Insn,       Type,   Format, Ld, St
+# Load Reserved and Store Conditional
+lr.w,       load,   R,      4,  0
+sc.w,       store,  R,      0,  4
+
+# Atomic Memory operations. These perform read-modify-write operations
+#   so a single instruction loads a value, applies it's operation to it
+#   and then stores the result
+amoswap.w,  swap,   R,      4,  4
+amoadd.w,   arith,  R,      4,  4
+amoxor.w,   logic,  R,      4,  4
+amoand.w,   logic,  R,      4,  4
+amoor.w,    logic,  R,      4,  4
+amomin.w,   minmax, R,      4,  4
+amomax.w,   minmax, R,      4,  4
+amominu.w,  minmax, R,      4,  4
+amomaxu.w,  minmax, R,      4,  4
+
+# 64 only
+amoswap.d,  swap,   R,      8,  8
+amoadd.d,   arith,  R,      8,  8
+amoxor.d,   logic,  R,      8,  8
+amoand.d,   logic,  R,      8,  8
+amoor.d,    logic,  R,      8,  8
+amomin.d,   minmax, R,      8,  8
+amomax.d,   minmax, R,      8,  8
+amominu.d,  minmax, R,      8,  8
+amomaxu.d,  minmax, R,      8,  8
+
+# 128 only
+amoswap.q,  swap,   R,      16,  16
+amoadd.q,   arith,  R,      16,  16
+amoxor.q,   logic,  R,      16,  16
+amoand.q,   logic,  R,      16,  16
+amoor.q,    logic,  R,      16,  16
+amomin.q,   minmax, R,      16,  16
+amomax.q,   minmax, R,      16,  16
+amominu.q,  minmax, R,      16,  16
+amomaxu.q,  minmax, R,      16,  16
+
