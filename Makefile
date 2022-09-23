@@ -31,18 +31,18 @@ endif
 # /src - Contains input .c files
 SRC_DIR 		= src
 # /src/common - Contains shared files between inputs e.g. syscalls.c
-SRC_COMMON_DIR  = $(SRC_DIR)/common
+SRC_COMMON_DIR  = ${SRC_DIR}/common
 # /src/ml-inputs - Contains directories used for code to be compiled for each
 #	ML input
-SRC_ML_DIR		= $(SRC_DIR)/ml-inputs
+SRC_ML_DIR		= ${SRC_DIR}/ml-inputs
 
-SRC_TFLITE_DIR	= $(SRC_DIR)/tensorflow/lite
+SRC_TFLITE_DIR	= ${SRC_DIR}/tensorflow/lite
 
-SRC_TFLITE_MICRO_DIR	= $(SRC_DIR)/tensorflow/lite/micro
+SRC_TFLITE_MICRO_DIR	= ${SRC_DIR}/tensorflow/lite/micro
 
-SRC_TFLITE_KERNELS_DIR	= $(SRC_TFLITE_MICRO_DIR)/kernels
+SRC_TFLITE_KERNELS_DIR	= ${SRC_TFLITE_MICRO_DIR}/kernels
 
-SRC_TFLITE_DOWNLOADS_DIR = $(SRC_TFLITE_MICRO_DIR)/downloads
+SRC_TFLITE_DOWNLOADS_DIR = ${SRC_TFLITE_MICRO_DIR}/downloads
 # /build - Constructed directory used to store outputs from recipes including
 #	executables, instruction traces, display pngs etc.
 BUILD_DIR 		= build
@@ -252,16 +252,15 @@ CCFLAGS += \
 	-DTF_LITE_USE_GLOBAL_MAX
 
 CC_INCLUDES = -I. \
-	-I$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp \
-	-I$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers/include \
-	-I$(SRC_TFLITE_DOWNLOADS_DIR)/ruy \
+	-I${SRC_TFLITE_DOWNLOADS_DIR}/gemmlowp \
+	-I${SRC_TFLITE_DOWNLOADS_DIR}/flatbuffers/include \
+	-I${SRC_TFLITE_DOWNLOADS_DIR}/ruy \
 	-I./include \
-	-I$(SRC_DIR) \
+	-I${SRC_DIR} \
 	-I${GEN_ML_DIR}
 
 CORE_OPTIMIZATION_LEVEL = -Os
 KERNEL_OPTIMIZATION_LEVEL = -O2
-
 
 #	------------------------------ DIRECTORIES --------------------------------
 # Targets to form all needed directories in one to avoid having multiple separate 
@@ -301,41 +300,41 @@ SRC_TFLITE_DOWNLOADS_DIR:
 	mkdir -p ${SRC_TFLITE_DOWNLOADS_DIR}
 
 # --------------------------- THIRD PARTY DOWNLOADS  --------------------------
-$(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers: SRC_TFLITE_DOWNLOADS_DIR
-	$(TOOLS_DIR)/flatbuffers_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
+${SRC_TFLITE_DOWNLOADS_DIR}/flatbuffers: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/flatbuffers_download.sh ${SRC_TFLITE_DOWNLOADS_DIR}
 
-$(SRC_TFLITE_DOWNLOADS_DIR)/kissfft: SRC_TFLITE_DOWNLOADS_DIR
-	$(TOOLS_DIR)/kissfft_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
+${SRC_TFLITE_DOWNLOADS_DIR}/kissfft: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/kissfft_download.sh ${SRC_TFLITE_DOWNLOADS_DIR}
 
-$(SRC_TFLITE_DOWNLOADS_DIR)/pigweed: SRC_TFLITE_DOWNLOADS_DIR
-	$(TOOLS_DIR)/pigweed_download.sh $(SRC_TFLITE_DOWNLOADS_DIR)
+${SRC_TFLITE_DOWNLOADS_DIR}/pigweed: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/pigweed_download.sh ${SRC_TFLITE_DOWNLOADS_DIR}
 
 GEMMLOWP_URL = "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
 GEMMLOWP_MD5 = "7e8191b24853d75de2af87622ad293ba"
 
-$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp: SRC_TFLITE_DOWNLOADS_DIR
-	$(TOOLS_DIR)/download_and_extract.sh $(GEMMLOWP_URL) $(GEMMLOWP_MD5) $@
+${SRC_TFLITE_DOWNLOADS_DIR}/gemmlowp: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/download_and_extract.sh $(GEMMLOWP_URL) $(GEMMLOWP_MD5) $@
 
 RUY_URL = "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
 RUY_MD5 = "abf7a91eb90d195f016ebe0be885bb6e"
 
-$(SRC_TFLITE_DOWNLOADS_DIR)/ruy: SRC_TFLITE_DOWNLOADS_DIR
-	$(TOOLS_DIR)/download_and_extract.sh $(RUY_URL) $(RUY_MD5) $@
+${SRC_TFLITE_DOWNLOADS_DIR}/ruy: SRC_TFLITE_DOWNLOADS_DIR
+	${TOOLS_DIR}/download_and_extract.sh $(RUY_URL) $(RUY_MD5) $@
 
 .PHONY: third_party_downloads
-third_party_downloads : $(SRC_TFLITE_DOWNLOADS_DIR)/flatbuffers \
-$(SRC_TFLITE_DOWNLOADS_DIR)/kissfft \
-$(SRC_TFLITE_DOWNLOADS_DIR)/pigweed \
-$(SRC_TFLITE_DOWNLOADS_DIR)/gemmlowp \
-$(SRC_TFLITE_DOWNLOADS_DIR)/ruy
+third_party_downloads : ${SRC_TFLITE_DOWNLOADS_DIR}/flatbuffers \
+${SRC_TFLITE_DOWNLOADS_DIR}/kissfft \
+${SRC_TFLITE_DOWNLOADS_DIR}/pigweed \
+${SRC_TFLITE_DOWNLOADS_DIR}/gemmlowp \
+${SRC_TFLITE_DOWNLOADS_DIR}/ruy
 
 # -------------------------------- GENERAL DEPENDENCIES --------------------------------
 # Details of all recipes can be found in /doc/dependencies.md
 # ----------------------------------- BUILD -----------------------------------
 # Recipes for all of the default common TFLite 
-include $(SRC_COMMON_DIR)/Makefile.inc
-include $(SRC_ML_DIR)/hello_world/Makefile.inc
-include $(SRC_ML_DIR)/person-detection/Makefile.inc
+include ${SRC_DIR}/tensorflow/Makefile.inc
+include ${SRC_ML_DIR}/hello_world/Makefile.inc
+include ${SRC_ML_DIR}/person-detection/Makefile.inc
 
 .PHONY: build
 build: ${EXECUTABLES}
@@ -346,16 +345,16 @@ build: ${EXECUTABLES}
 #	necessary prefixes and suffixes, forms the file path for the input test case (whose
 #	name is present in the file path)
 .SECONDEXPANSION:
-$(BUILD_DIR)/%/executable.elf: \
-	$(BUILD_DIR)/%/../common/syscalls.o \
-	$(BUILD_DIR)/$$*/$$(word 2, $$(subst /, ,$$*)).a \
-	$(MICROLITE_LIB_OBJS) $(TFLITE_LIB_OBJS) $(MICROLITE_KERNEL_LIB_OBJS) \
+${BUILD_DIR}/%/executable.elf: \
+	${BUILD_DIR}/%/../common/syscalls.o \
+	${BUILD_DIR}/$$*/$$(word 2, $$(subst /, ,$$*)).a \
+	$(TFLITE_OBJS) $(TFLITE_MICRO_OBJS) $(TFLITE_MICRO_KERNEL_OBJS) \
 	${SRC_COMMON_DIR}/entry.S
 	
 	mkdir -p $(dir $@)
 	$(CC) -march=$(ISA) -mabi=$(ABI) -Wl,--fatal-warnings -Wl,--gc-sections \
 	-nostartfiles -lm -lgcc \
-	$(CC_INCLUDES) -T$(LINKER_SCRIPT) \
+	${CC_INCLUDES} -T${LINKER_SCRIPT} \
 	-o $@ $^
 
 # syscalls object file
@@ -423,11 +422,11 @@ include scripts/reg_accesses/Makefile.inc
 # ----------------------------------- CLEAN ------------------------------------
 .PHONY: clean
 clean:
-	rm -r $(BUILD_DIR)
+	rm -r ${BUILD_DIR}
 
 .PHONY: clean_downloads
 clean_downloads:
-	rm -rf $(SRC_TFLITE_DOWNLOADS_DIR)
+	rm -rf ${SRC_TFLITE_DOWNLOADS_DIR}
 
 ###################################################################################
 # # Spike with GDB
